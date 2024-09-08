@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- infra_v1beta1_automq.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

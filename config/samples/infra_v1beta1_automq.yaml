@@ -1,0 +1,12 @@
+apiVersion: infra.cuisongliu.github.com/v1beta1
+kind: AutoMQ
+metadata:
+  labels:
+    app.kubernetes.io/name: automq
+    app.kubernetes.io/instance: automq-sample
+    app.kubernetes.io/part-of: automq-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: automq-operator
+  name: automq-sample
+spec:
+  # TODO(user): Add fields here

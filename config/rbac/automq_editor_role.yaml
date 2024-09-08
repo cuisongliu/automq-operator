@@ -1,0 +1,31 @@
+# permissions for end users to edit automqs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: automq-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: automq-operator
+    app.kubernetes.io/part-of: automq-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: automq-editor-role
+rules:
+- apiGroups:
+  - infra.cuisongliu.github.com
+  resources:
+  - automqs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infra.cuisongliu.github.com
+  resources:
+  - automqs/status
+  verbs:
+  - get
