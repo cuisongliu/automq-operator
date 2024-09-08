@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  goreleaser:
+  job0:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,4 +38,4 @@ jobs:
           # fork friendly ^^
           DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/automq-operator
         run: |
-          IMG=${DOCKER_REPO}:latest make docker-build
+          IMG=${DOCKER_REPO}:latest make docker-buildx
