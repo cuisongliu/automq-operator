@@ -1,4 +1,4 @@
-name: Go for PR
+name: 🏷️ Go for PR
 
 on:
   pull_request:
