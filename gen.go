@@ -18,10 +18,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/cuisongliu/automq-operator/internal/controller"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/cuisongliu/automq-operator/internal/controller"
 )
 
 func main() {
