@@ -540,27 +540,19 @@ spec:
               metrics:
                 description: Metrics is the metrics configuration for the AutoMQ
                 properties:
-                  otlpIp:
-                    description: OtlpIp is the IP address of the OTLP server.
-                    type: string
-                  otlpPort:
-                    description: OtlpPort is the port of the OTLP server.
-                    format: int32
-                    type: integer
-                  otlpProtocol:
-                    description: OtlpProtocol is the protocol of the OTLP server.
-                      Supported values are "grpc", "http"
-                    type: string
-                  type:
+                  enable:
                     default: prometheus
-                    description: Type is the type of the metrics. Supported values
-                      are "prometheus", "otlp"
+                    description: Enable is the flag to enable the metrics
                     enum:
                     - prometheus
                     - otlp
-                    type: string
+                    type: boolean
+                  importDashboard:
+                    default: true
+                    description: ImportDashboard is the flag to import the dashboard.
+                    type: boolean
                 required:
-                - type
+                - enable
                 type: object
               s3:
                 description: S3 is the S3 configuration for the AutoMQ

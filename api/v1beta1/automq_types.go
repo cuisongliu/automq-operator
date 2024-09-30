@@ -132,17 +132,14 @@ const (
 
 // MetricsSpec is the metrics configuration for the AutoMQ
 type MetricsSpec struct {
-	// Type is the type of the metrics. Supported values are "prometheus", "otlp"
+	// Enable is the flag to enable the metrics
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=prometheus;otlp
 	// +kubebuilder:default=prometheus
-	Type MetricsType `json:"type,omitempty"`
-	// OtlpIp is the IP address of the OTLP server.
-	OtlpIp string `json:"otlpIp,omitempty"`
-	// OtlpPort is the port of the OTLP server.
-	OtlpPort int32 `json:"otlpPort,omitempty"`
-	// OtlpProtocol is the protocol of the OTLP server. Supported values are "grpc", "http"
-	OtlpProtocol OtlpProtocol `json:"otlpProtocol,omitempty"`
+	Enable bool `json:"enable,omitempty"`
+	// ImportDashboard is the flag to import the dashboard.
+	// +kubebuilder:default=true
+	ImportDashboard bool `json:"importDashboard,omitempty"`
 }
 
 // AutoMQSpec defines the desired state of AutoMQ
