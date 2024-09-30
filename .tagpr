@@ -2,6 +2,6 @@
     vPrefix = true
     releaseBranch = main
     versionFile = .tagpr,Makefile,deploy/charts/automq-operator/Chart.yaml
-    command = Version=v0.0.1 make pre-deploy
+    command = Version=v0.0.2-alpha1 make pre-deploy
     release = false
     changelog = true
