@@ -24,7 +24,7 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 1 {
+	if len(os.Args) != 2 {
 		fmt.Printf("Usage: %s IMAGE_NAME\n", os.Args[0])
 		os.Exit(1)
 	}
