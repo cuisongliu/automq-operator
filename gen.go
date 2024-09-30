@@ -48,6 +48,7 @@ func main() {
 		fmt.Printf("execCmd error %v", err)
 		os.Exit(1)
 	}
+	fmt.Printf("update image success")
 }
 
 func execCmd(command string, args ...string) error {
