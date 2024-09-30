@@ -167,12 +167,12 @@ $(ENVTEST): $(LOCALBIN)
 crd: manifests kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	@cp -rf config/crd/bases/* deploy/charts/automq-operator/crds/
 
-
-IMG ?= realconnector:latest
+Version ?= v0.0.1
+IMG ?= ghcr.io/cuisongliu/automq-operator
 
 .PHONY: pre-deploy
 pre-deploy:
 	@mkdir -p deploy/images/shim
 	@rm -f deploy/images/shim/image.txt
 	@echo "${IMG}" >> deploy/images/shim/image.txt
-	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}' deploy/charts/automq-operator/values.yaml
+	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}:${Version}' deploy/charts/automq-operator/values.yaml
