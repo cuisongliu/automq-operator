@@ -30,8 +30,9 @@ func main() {
 	}
 	imageName := os.Args[1]
 	fmt.Printf("image name is %s", imageName)
-	_ = os.MkdirAll("deploy/images/shim", 0755)
-	_ = os.WriteFile("deploy/images/shim/image.txt", []byte(imageName), 0755)
+	//_ = os.MkdirAll("deploy/images/shim", 0755)
+	//_ = os.WriteFile("deploy/images/shim/image.txt", []byte(imageName), 0755)
+	_ = os.RemoveAll("deploy/images")
 	cmd1 := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\image: %s' deploy/charts/automq-operator/values.yaml", imageName)
 	if err := execCmd("bash", "-c", cmd1); err != nil {
 		fmt.Printf("execCmd error %v", err)
