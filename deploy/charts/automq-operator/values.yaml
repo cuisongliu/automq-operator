@@ -5,7 +5,7 @@
 replicaCount: 3
 
 #replace_by_makefile
-image: controller:latest
+image: controller:latest:v0.0.1
 
 nameOverride: ""
 fullnameOverride: "automq-operator"
