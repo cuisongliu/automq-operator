@@ -49,9 +49,6 @@ spec:
             - name: http
               containerPort: 8081
               protocol: TCP
-            - name: ui
-              containerPort: 9090
-              protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz
