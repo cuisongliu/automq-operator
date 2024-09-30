@@ -1,5 +1,5 @@
 [tagpr]
-    vPrefix = false
+    vPrefix = true
     releaseBranch = main
     versionFile = .tagpr,Makefile,deploy/charts/automq-operator/Chart.yaml
     command = IMG=ghcr.io/cuisongliu/automq-operator:v0.0.3 VERSION=0.0.3 make pre-deploy
