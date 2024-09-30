@@ -5,7 +5,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - infra.github.com
+  - infra.cuisongliu.github.com
   resources:
   - automqs
   verbs:
@@ -17,13 +17,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - infra.github.com
+  - infra.cuisongliu.github.com
   resources:
   - automqs/finalizers
   verbs:
   - update
 - apiGroups:
-  - infra.github.com
+  - infra.cuisongliu.github.com
   resources:
   - automqs/status
   verbs:

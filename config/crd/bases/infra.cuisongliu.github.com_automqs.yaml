@@ -39,10 +39,559 @@ spec:
           spec:
             description: AutoMQSpec defines the desired state of AutoMQ
             properties:
-              foo:
-                description: Foo is an example field of AutoMQ. Edit automq_types.go
-                  to remove/update
+              broker:
+                description: Broker is the broker configuration for the AutoMQ
+                properties:
+                  affinity:
+                    description: Affinity is the affinity for the broker
+                    properties:
+                      nodeAffinity:
+                        description: NodeAffinity is the node affinity for the pod
+                        properties:
+                          nodeSelector:
+                            description: NodeSelector is the node selector for the
+                              node affinity.
+                            items:
+                              properties:
+                                key:
+                                  description: Key is the key of the node selector
+                                  type: string
+                                values:
+                                  description: Values is the value of the node selector
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - key
+                              type: object
+                            type: array
+                          type:
+                            description: Type is the type of the node affinity. Supported
+                              values are "soft" and "hard"
+                            type: string
+                          weight:
+                            default: 40
+                            description: Weight is the weight of the node affinity.
+                              When the type is "soft", the weight is used to select
+                              the node. Default is 40.
+                            format: int32
+                            type: integer
+                        type: object
+                      podAffinity:
+                        description: PodAffinity is the pod affinity for the pod
+                        properties:
+                          type:
+                            description: Type is the type of the node affinity. Supported
+                              values are "soft" and "hard"
+                            type: string
+                          weight:
+                            default: 40
+                            description: Weight is the weight of the pod affinity.
+                              When the type is "soft", the weight is used to select
+                              the pods. Default is 40.
+                            format: int32
+                            type: integer
+                        type: object
+                      podAntiAffinity:
+                        description: PodAntiAffinity is the pod anti-affinity for
+                          the pod
+                        properties:
+                          type:
+                            description: Type is the type of the node anti affinity.
+                              Supported values are "soft" and "hard"
+                            type: string
+                          weight:
+                            default: 40
+                            description: Weight is the weight of the pod anti affinity.
+                              When the type is "soft", the weight is used to select
+                              the pods. Default is 40.
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
+                  envs:
+                    description: Envs is the environment variables for the controller
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  jvmOptions:
+                    description: JVMOptions is the JVM options for the controller
+                    items:
+                      type: string
+                    type: array
+                  replicas:
+                    description: Replicas is the number of controller replicas
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  resource:
+                    description: Resource is the resource requirements for the controller
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                type: object
+              clusterID:
+                description: ClusterID is the ID of the cluster. Default is "rZdE0DjZSrqy96PXrMUZVw"
                 type: string
+              controller:
+                description: Controller is the controller configuration for the AutoMQ
+                properties:
+                  affinity:
+                    description: Affinity is the affinity for the controller
+                    properties:
+                      nodeAffinity:
+                        description: NodeAffinity is the node affinity for the pod
+                        properties:
+                          nodeSelector:
+                            description: NodeSelector is the node selector for the
+                              node affinity.
+                            items:
+                              properties:
+                                key:
+                                  description: Key is the key of the node selector
+                                  type: string
+                                values:
+                                  description: Values is the value of the node selector
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - key
+                              type: object
+                            type: array
+                          type:
+                            description: Type is the type of the node affinity. Supported
+                              values are "soft" and "hard"
+                            type: string
+                          weight:
+                            default: 40
+                            description: Weight is the weight of the node affinity.
+                              When the type is "soft", the weight is used to select
+                              the node. Default is 40.
+                            format: int32
+                            type: integer
+                        type: object
+                      podAffinity:
+                        description: PodAffinity is the pod affinity for the pod
+                        properties:
+                          type:
+                            description: Type is the type of the node affinity. Supported
+                              values are "soft" and "hard"
+                            type: string
+                          weight:
+                            default: 40
+                            description: Weight is the weight of the pod affinity.
+                              When the type is "soft", the weight is used to select
+                              the pods. Default is 40.
+                            format: int32
+                            type: integer
+                        type: object
+                      podAntiAffinity:
+                        description: PodAntiAffinity is the pod anti-affinity for
+                          the pod
+                        properties:
+                          type:
+                            description: Type is the type of the node anti affinity.
+                              Supported values are "soft" and "hard"
+                            type: string
+                          weight:
+                            default: 40
+                            description: Weight is the weight of the pod anti affinity.
+                              When the type is "soft", the weight is used to select
+                              the pods. Default is 40.
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
+                  envs:
+                    description: Envs is the environment variables for the controller
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  jvmOptions:
+                    description: JVMOptions is the JVM options for the controller
+                    items:
+                      type: string
+                    type: array
+                  replicas:
+                    description: Replicas is the number of controller replicas
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  resource:
+                    description: Resource is the resource requirements for the controller
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                type: object
+              metrics:
+                description: Metrics is the metrics configuration for the AutoMQ
+                properties:
+                  otlpIp:
+                    description: OtlpIp is the IP address of the OTLP server.
+                    type: string
+                  otlpPort:
+                    description: OtlpPort is the port of the OTLP server.
+                    format: int32
+                    type: integer
+                  otlpProtocol:
+                    description: OtlpProtocol is the protocol of the OTLP server.
+                      Supported values are "grpc", "http"
+                    type: string
+                  type:
+                    default: prometheus
+                    description: Type is the type of the metrics. Supported values
+                      are "prometheus", "otlp"
+                    enum:
+                    - prometheus
+                    - otlp
+                    type: string
+                required:
+                - type
+                type: object
+              s3:
+                description: S3 is the S3 configuration for the AutoMQ
+                properties:
+                  accessKeyID:
+                    description: AccessKeyID is the access key ID of the S3 service
+                    type: string
+                  bucket:
+                    description: Bucket is the bucket name for storing the operations
+                      data
+                    type: string
+                  endpoint:
+                    description: Endpoint is the endpoint of the S3 service
+                    type: string
+                  region:
+                    description: Region is the region of the S3 service
+                    pattern: ^[a-zA-Z0-9-]+$
+                    type: string
+                  secretAccessKey:
+                    description: SecretAccessKey is the secret access key of the S3
+                      service
+                    type: string
+                required:
+                - accessKeyID
+                - bucket
+                - endpoint
+                - region
+                - secretAccessKey
+                type: object
+            required:
+            - broker
+            - clusterID
+            - controller
+            - s3
             type: object
           status:
             description: AutoMQStatus defines the observed state of AutoMQ
