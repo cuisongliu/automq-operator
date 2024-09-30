@@ -1,1 +1,1 @@
-controller:latest
+ghcr.io/cuisongliu/automq-operator:v0.0.3
