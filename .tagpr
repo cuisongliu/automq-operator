@@ -2,6 +2,6 @@
     vPrefix = true
     releaseBranch = main
     versionFile = .tagpr,Makefile,deploy/charts/automq-operator/Chart.yaml
-    command = Version=ghcr.io/cuisongliu/automq-operator:v0.0.2 make pre-deploy
+    command = IMG=ghcr.io/cuisongliu/automq-operator:v0.0.2 make pre-deploy
     release = false
     changelog = true
