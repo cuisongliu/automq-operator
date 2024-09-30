@@ -51,26 +51,32 @@ jobs:
     needs:
       - job0
     steps:
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.8.1
       - name: Prepare
         id: prepare
         run: |
           TAG=${GITHUB_REF#refs/tags/}
           echo ::set-output name=tag_name::${TAG}
       - uses: actions/checkout@v4
-#      - name: Create artifacts directory
-#        run: mkdir -p artifacts
-#      - name: Download artifacts
-#        uses: actions/download-artifact@v4
-#        with:
-#          path: artifacts
-#      - name: Show artifacts
-#        run: ls -alhR artifacts
+      - name: Helm package
+        run: |
+          helm package deploy/charts/automq-operator
+          git checkout .
+      - name: Create artifacts directory
+        run: |
+          mkdir -p artifacts
+          mv *.tgz artifacts/
+      - name: Show artifacts
+        run: ls -alhR artifacts
       - name: Create release draft
         shell: bash
         run: |
           set -x
           gh release create "${{ github.ref }}" --generate-notes --draft
-#          gh release upload "${{ github.ref }}" artifacts/*/*
+          gh release upload "${{ github.ref }}" artifacts/*/*
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           RELEASE_NAME: "${{ steps.prepare.outputs.tag_name }} Release"
