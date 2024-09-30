@@ -116,20 +116,6 @@ type BrokerSpec struct {
 	Affinity *AffinitySpec `json:"affinity,omitempty"`
 }
 
-type MetricsType string
-
-const (
-	Prometheus MetricsType = "prometheus"
-	OTLP       MetricsType = "otlp"
-)
-
-type OtlpProtocol string
-
-const (
-	GRPC OtlpProtocol = "grpc"
-	Http OtlpProtocol = "http"
-)
-
 // MetricsSpec is the metrics configuration for the AutoMQ
 type MetricsSpec struct {
 	// Enable is the flag to enable the metrics
