@@ -21,7 +21,7 @@ jobs:
               vPrefix = true
               releaseBranch = main
               versionFile = .tagpr,Makefile,deploy/charts/automq-operator/Chart.yaml
-              command = Version=${{ github.event.inputs.version }} make pre-deploy
+              command = IMG=ghcr.io/cuisongliu/automq-operator:${{ github.event.inputs.version }} make pre-deploy
               release = false
               changelog = true
           EOF

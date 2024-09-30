@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= ghcr.io/cuisongliu/automq-operator:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.28.0
 
@@ -167,12 +167,10 @@ $(ENVTEST): $(LOCALBIN)
 crd: manifests kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	@cp -rf config/crd/bases/* deploy/charts/automq-operator/crds/
 
-Version ?= v0.0.1
-IMG ?= ghcr.io/cuisongliu/automq-operator
 
 .PHONY: pre-deploy
 pre-deploy:
 	@mkdir -p deploy/images/shim
 	@rm -f deploy/images/shim/image.txt
-	@echo "${IMG}:${Version}" >> deploy/images/shim/image.txt
-	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}:${Version}' deploy/charts/automq-operator/values.yaml
+	@echo "${IMG}" > deploy/images/shim/image.txt
+	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}' deploy/charts/automq-operator/values.yaml
