@@ -174,5 +174,5 @@ IMG ?= ghcr.io/cuisongliu/automq-operator
 pre-deploy:
 	@mkdir -p deploy/images/shim
 	@rm -f deploy/images/shim/image.txt
-	@echo "${IMG}" >> deploy/images/shim/image.txt
+	@echo "${IMG}:${Version}" >> deploy/images/shim/image.txt
 	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}:${Version}' deploy/charts/automq-operator/values.yaml
