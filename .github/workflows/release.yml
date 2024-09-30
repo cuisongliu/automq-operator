@@ -40,3 +40,37 @@ jobs:
           DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/automq-operator
         run: |
           IMG=${DOCKER_REPO}:${{ steps.prepare.outputs.tag_name }} make docker-buildx
+
+  release:
+    name: Create Draft Release
+    environment:
+      name: release
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    needs:
+      - job0
+    steps:
+      - name: Prepare
+        id: prepare
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo ::set-output name=tag_name::${TAG}
+      - uses: actions/checkout@v4
+#      - name: Create artifacts directory
+#        run: mkdir -p artifacts
+#      - name: Download artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          path: artifacts
+#      - name: Show artifacts
+#        run: ls -alhR artifacts
+      - name: Create release draft
+        shell: bash
+        run: |
+          set -x
+          gh release create "${{ github.ref }}" --generate-notes --draft
+#          gh release upload "${{ github.ref }}" artifacts/*/*
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          RELEASE_NAME: "${{ steps.prepare.outputs.tag_name }} Release"
