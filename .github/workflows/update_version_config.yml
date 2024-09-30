@@ -20,7 +20,7 @@ jobs:
           [tagpr]
               vPrefix = true
               releaseBranch = main
-              versionFile = .tagpr,Makefile,deploy/charts/automq-operator/Chart.yaml
+              versionFile = .tagpr
               command = go run gen.go ghcr.io/cuisongliu/automq-operator:${{ github.event.inputs.version }} && make info
               release = false
               changelog = true
