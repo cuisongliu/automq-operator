@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "automq-operator.fullname" . }}
+  labels:
+    {{- include "automq-operator.labels" . | nindent 4 }}
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ include "automq-operator.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "automq-operator.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "automq-operator.fullname" . }}
+    namespace: {{ .Release.Namespace }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: {{.Release.Namespace}}
+  name: {{ include "automq-operator.fullname" . }}
+rules:
+  - apiGroups:
+      - infra.cuisongliu.github.com
+    resources:
+      - automqs
+      - automqs/status
+      - automqs/finalizers
+    verbs:
+      - '*'
+  - apiGroups:
+      - infra.cuisongliu.github.com
+    resources:
+      - automqs/status
+    verbs:
+      - get
+  - apiGroups:
+      - 'storage.k8s.io'
+    resources:
+      - storageclasses
+    verbs:
+      - '*'
+  - apiGroups:
+      - 'scheduling.k8s.io'
+    resources:
+      - priorityclasses
+    verbs:
+      - '*'
+  - apiGroups:
+      - '*'
+    resources:
+      - endpoints
+      - services
+      - configmaps
+      - events
+      - namespaces
+      - nodes
+      - pods
+      - serviceaccounts
+      - secrets
+      - persistentvolumeclaims
+      - persistentvolumes
+    verbs:
+      - '*'
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - '*'
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - deployments/status
+      - statefulsets
+      - statefulsets/status
+    verbs:
+      - '*'
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+      - horizontalpodautoscalers/status
+    verbs:
+      - '*'
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - jobs/status
+      - cronjobs
+      - cronjobs/status
+    verbs:
+      - '*'
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+      - podmonitors
+    verbs:
+      - '*'
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterrolebindings
+      - clusterroles
+      - roles
+      - rolebindings
+    verbs:
+      - '*'
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+  - apiGroups:
+      - authentication.k8s.io
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - subjectaccessreviews
+    verbs:
+      - create
+  - apiGroups:
+      - 'sealos.io'
+    resources:
+      - clusterendpoints
+      - clusterendpoints/status
+    verbs:
+      - '*'

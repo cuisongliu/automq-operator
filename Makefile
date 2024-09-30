@@ -161,3 +161,18 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+
+.PHONY: crd
+crd: manifests kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	@cp -rf config/crd/bases/* deploy/charts/automq-operator/crds/
+
+
+IMG ?= realconnector:latest
+
+.PHONY: pre-deploy
+pre-deploy:
+	@mkdir -p deploy/images/shim
+	@rm -f deploy/images/shim/image.txt
+	@echo "${IMG}" >> deploy/images/shim/image.txt
+	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}' deploy/charts/automq-operator/values.yaml

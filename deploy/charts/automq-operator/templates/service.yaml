@@ -1,0 +1,33 @@
+{{if .Values.metrics -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "automq-operator.fullname" . }}-metrics
+  labels:
+    {{- include "automq-operator.labels" . | nindent 4 }}
+    app: metrics
+spec:
+  ports:
+    - name: https
+      port: 8443
+      protocol: TCP
+      targetPort: https
+  selector:
+    {{- include "automq-operator.selectorLabels" . | nindent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "automq-operator.fullname" . }}-webhook
+  labels:
+    {{- include "automq-operator.labels" . | nindent 4 }}
+    app: webhook
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443
+  selector:
+    {{- include "automq-operator.selectorLabels" . | nindent 4 }}
+---
