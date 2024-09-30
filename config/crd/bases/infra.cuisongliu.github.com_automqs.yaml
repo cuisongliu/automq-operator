@@ -534,6 +534,9 @@ spec:
                         type: object
                     type: object
                 type: object
+              image:
+                description: Image is the image of the AutoMQ
+                type: string
               metrics:
                 description: Metrics is the metrics configuration for the AutoMQ
                 properties:
