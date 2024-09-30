@@ -18,10 +18,10 @@ jobs:
         run: |
           cat << EOF > .tagpr
           [tagpr]
-              vPrefix = false
+              vPrefix = true
               releaseBranch = main
               versionFile = .tagpr,Makefile,deploy/charts/automq-operator/Chart.yaml
-              command = IMG=ghcr.io/cuisongliu/automq-operator:v${{ github.event.inputs.version }} VERSION=${{ github.event.inputs.version }} make pre-deploy
+              command = go run gen.go ghcr.io/cuisongliu/automq-operator:${{ github.event.inputs.version }} && make check
               release = false
               changelog = true
           EOF
