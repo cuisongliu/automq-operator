@@ -75,8 +75,7 @@ jobs:
         shell: bash
         run: |
           set -x
-          gh release create "${{ github.ref }}" --generate-notes --draft
+          gh release create "${{ github.ref }}" -t "${{ steps.prepare.outputs.tag_name }} Release" --generate-notes --draft
           gh release upload "${{ github.ref }}" artifacts/*
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          RELEASE_NAME: "${{ steps.prepare.outputs.tag_name }} Release"
