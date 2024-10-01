@@ -65,6 +65,7 @@ jobs:
         run: |
           helm package deploy/charts/automq-operator
           git checkout .
+          tar -czf automq-operator-${{ steps.prepare.outputs.tag_name }}-sealos.tgz deploy/
       - name: Create artifacts directory
         run: |
           mkdir -p artifacts
