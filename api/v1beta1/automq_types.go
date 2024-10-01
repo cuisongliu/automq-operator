@@ -150,14 +150,42 @@ type AutoMQSpec struct {
 	Broker BrokerSpec `json:"broker,omitempty"`
 }
 
+type AutoMQPhase string
+
+// These are the valid phases of node.
+const (
+	AutoMQPending        AutoMQPhase = "Pending"
+	AutoMQError          AutoMQPhase = "Error"
+	AutoMQReady          AutoMQPhase = "Ready"
+	AutoMQInProcess      AutoMQPhase = "InProcess"
+	AutoMQDefaultMessage string      = "success"
+)
+
 // AutoMQStatus defines the observed state of AutoMQ
 type AutoMQStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Phase represents the current phase of AutoMQ.
+	//+kubebuilder:default:=Unknown
+	Phase AutoMQPhase `json:"phase,omitempty"`
+	// Conditions contains the different condition statuses for this automq.
+	// +optional
+	Conditions []StatusCondition `json:"conditions"`
+	// ReadyPods is the number of ready pods for the AutoMQ
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:default=0
+	ReadyPods int32 `json:"readyPods"`
+	// ShortMessage is a human-readable string indicating details about why the AutoMQ is in this condition.
+	// +optional
+	ShortMessage string `json:"shortMessage,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
+// +kubebuilder:printcolumn:name="Ready Pods",type=string,JSONPath=`.status.readyPods`
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.shortMessage`
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // AutoMQ is the Schema for the automqs API
 type AutoMQ struct {
