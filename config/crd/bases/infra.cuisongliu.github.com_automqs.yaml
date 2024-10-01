@@ -14,7 +14,20 @@ spec:
     singular: automq
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - jsonPath: .status.readyPods
+      name: Ready Pods
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.shortMessage
+      name: Message
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: AutoMQ is the Schema for the automqs API
@@ -590,6 +603,24 @@ spec:
             type: object
           status:
             description: AutoMQStatus defines the observed state of AutoMQ
+            properties:
+              message:
+                description: Message is a human-readable string indicating details
+                  about why the Setting is in this condition.
+                type: string
+              phase:
+                default: Unknown
+                description: Phase represents the current phase of AutoMQ.
+                type: string
+              readyPods:
+                default: 0
+                format: int32
+                minimum: 0
+                type: integer
+              shortMessage:
+                description: ShortMessage is a human-readable string indicating details
+                  about why the Setting is in this condition.
+                type: string
             type: object
         type: object
     served: true
