@@ -166,14 +166,15 @@ type AutoMQStatus struct {
 	// Phase represents the current phase of AutoMQ.
 	//+kubebuilder:default:=Unknown
 	Phase AutoMQPhase `json:"phase,omitempty"`
+	// Conditions contains the different condition statuses for this automq.
+	// +optional
+	Conditions []StatusCondition `json:"conditions"`
+	// ReadyPods is the number of ready pods for the AutoMQ
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=0
 	ReadyPods int32 `json:"readyPods"`
-	// Message is a human-readable string indicating details about why the Setting is in this condition.
-	// +optional
-	Message string `json:"message,omitempty"`
-	// ShortMessage is a human-readable string indicating details about why the Setting is in this condition.
+	// ShortMessage is a human-readable string indicating details about why the AutoMQ is in this condition.
 	// +optional
 	ShortMessage string `json:"shortMessage,omitempty"`
 }

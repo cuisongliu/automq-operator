@@ -164,7 +164,7 @@ $(ENVTEST): $(LOCALBIN)
 
 
 .PHONY: crd
-crd: manifests kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+crd: manifests generate kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	@cp -rf config/crd/bases/* deploy/charts/automq-operator/crds/
 
 info:

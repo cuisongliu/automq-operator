@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"fmt"
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"github.com/labring/operator-sdk/controller"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -128,7 +127,6 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		return ctrl.Result{}, errors.New("obj convert automq is error")
 	}
 	// Let's just set the status as Unknown when no status are available
-
 	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		original := &infrav1beta1.AutoMQ{}
 		if err = r.Get(ctx, client.ObjectKeyFromObject(automq), original); err != nil {
@@ -140,9 +138,9 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		log.Error(err, "Failed to update automq status")
 		return ctrl.Result{}, err
 	}
-	if automq.Status.Phase == infrav1beta1.AutoMQError {
-		return ctrl.Result{}, fmt.Errorf("automq error: %s", automq.Status.Message)
-	}
+	//if automq.Status.Phase == infrav1beta1.AutoMQError {
+	//	return ctrl.Result{}, fmt.Errorf("automq error: %s", automq.Status.Message)
+	//}
 	return ctrl.Result{}, nil
 }
 
