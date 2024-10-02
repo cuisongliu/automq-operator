@@ -77,44 +77,65 @@ func initAutoMQ() *AutoMQ {
 }
 
 var _ = Describe("Default", func() {
-	It("Default ImageName", func() {
-		aq := initAutoMQ()
-		err := k8sClient.Create(context.Background(), aq)
-		Expect(err).To(BeNil())
-		Expect(aq.Spec.Image).To(Equal(DefaultImageName))
+	Context("Default Webhook", func() {
+		BeforeEach(func() {
+			aq := initAutoMQ()
+			_ = k8sClient.Delete(context.Background(), aq)
+		})
+		It("Default ImageName", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
+			Expect(err).To(BeNil())
+			Expect(aq.Spec.Image).To(Equal(DefaultImageName))
+		})
+		It("Default Region", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
+			Expect(err).To(BeNil())
+			Expect(aq.Spec.S3.Region).To(Equal("us-east-1"))
+		})
+		It("Default ClusterID", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
+			Expect(err).To(BeNil())
+			Expect(aq.Spec.ClusterID).To(Equal("rZdE0DjZSrqy96PXrMUZVw"))
+			err = k8sClient.Delete(context.Background(), aq)
+			Expect(err).To(BeNil())
+		})
+		It("Default Bucket", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
+			Expect(err).To(BeNil())
+			Expect(aq.Spec.S3.Bucket).To(Equal("automq"))
+		})
+		It("Default Replicas", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
+			Expect(err).To(BeNil())
+			Expect(aq.Spec.Controller.Replicas).To(Equal(int32(1)))
+			Expect(aq.Spec.Broker.Replicas).To(Equal(int32(1)))
+		})
+		It("Default JVM", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
+			Expect(err).To(BeNil())
+			Expect(aq.Spec.Controller.JVMOptions).To(Equal([]string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m"}))
+			Expect(aq.Spec.Broker.JVMOptions).To(Equal([]string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m", "-XX:MaxDirectMemorySize=1G"}))
+		})
 	})
-	It("Default Region", func() {
-		aq := initAutoMQ()
-		err := k8sClient.Create(context.Background(), aq)
-		Expect(err).To(BeNil())
-		Expect(aq.Spec.S3.Region).To(Equal("us-east-1"))
-	})
-	It("Default ClusterID", func() {
-		aq := initAutoMQ()
-		err := k8sClient.Create(context.Background(), aq)
-		Expect(err).To(BeNil())
-		Expect(aq.Spec.ClusterID).To(Equal("rZdE0DjZSrqy96PXrMUZVw"))
-	})
-	It("Default Bucket", func() {
-		aq := initAutoMQ()
-		err := k8sClient.Create(context.Background(), aq)
-		Expect(err).To(BeNil())
-		Expect(aq.Spec.S3.Bucket).To(Equal("automq"))
-	})
-	It("Default Replicas", func() {
-		aq := initAutoMQ()
-		err := k8sClient.Create(context.Background(), aq)
-		Expect(err).To(BeNil())
-		Expect(aq.Spec.Controller.Replicas).To(Equal(1))
-		Expect(aq.Spec.Broker.Replicas).To(Equal(1))
-	})
-	It("Default JVM", func() {
-		aq := initAutoMQ()
-		err := k8sClient.Create(context.Background(), aq)
-		Expect(err).To(BeNil())
-		Expect(aq.Spec.Controller.JVMOptions).To(Equal([]string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m"}))
-		Expect(aq.Spec.Broker.JVMOptions).To(Equal([]string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m", "-XX:MaxDirectMemorySize=1G"}))
-	})
+
 })
 
 var _ = BeforeSuite(func() {

@@ -134,10 +134,8 @@ type AutoMQSpec struct {
 	S3 S3Spec `json:"s3,omitempty"`
 	// ClusterID is the ID of the cluster. Default is "rZdE0DjZSrqy96PXrMUZVw"
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:default=rZdE0DjZSrqy96PXrMUZVw
 	ClusterID string `json:"clusterID,omitempty"`
 	// Image is the image of the AutoMQ
-	// +kubebuilder:validation:default=automqinc/automq:1.2.0-rc1
 	Image string `json:"image,omitempty"`
 	// Metrics is the metrics configuration for the AutoMQ
 	Metrics MetricsSpec `json:"metrics,omitempty"`
