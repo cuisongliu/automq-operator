@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -50,7 +51,7 @@ func (r *AutoMQ) Default() {
 		r.Spec.ClusterID = "rZdE0DjZSrqy96PXrMUZVw"
 	}
 	if r.Spec.S3.Bucket == "" {
-		r.Spec.S3.Bucket = "automq"
+		r.Spec.S3.Bucket = "ko3"
 	}
 	if r.Spec.Controller.JVMOptions == nil {
 		r.Spec.Controller.JVMOptions = []string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m"}
@@ -74,16 +75,32 @@ var _ webhook.Validator = &AutoMQ{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AutoMQ) ValidateCreate() (admission.Warnings, error) {
 	automqlog.Info("validate create", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object creation.
+	if err := validate(r); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *AutoMQ) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	automqlog.Info("validate update", "name", r.Name)
+	mqOld := old.(*AutoMQ)
 
-	// TODO(user): fill in your validation logic upon object update.
+	if r.Spec.S3.Endpoint != mqOld.Spec.S3.Endpoint {
+		return nil, fmt.Errorf("field s3.Endpoint is immutable")
+	}
+	if r.Spec.S3.Region != mqOld.Spec.S3.Region {
+		return nil, fmt.Errorf("field s3.Region is immutable")
+	}
+	if r.Spec.S3.Bucket != mqOld.Spec.S3.Bucket {
+		return nil, fmt.Errorf("field s3.Bucket is immutable")
+	}
+	if r.Spec.ClusterID != mqOld.Spec.ClusterID {
+		return nil, fmt.Errorf("field clusterID is immutable")
+	}
+	if err := validate(r); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -93,4 +110,24 @@ func (r *AutoMQ) ValidateDelete() (admission.Warnings, error) {
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
+}
+
+func validate(r *AutoMQ) error {
+	if r.Spec.S3.Endpoint == "" {
+		return fmt.Errorf("field s3.Endpoint is required")
+	}
+	if r.Spec.S3.Region == "" {
+		return fmt.Errorf("field s3.Region is required")
+	}
+	if r.Spec.S3.Bucket == "" {
+		return fmt.Errorf("field s3.Bucket is required")
+	}
+	if r.Spec.ClusterID == "" {
+		return fmt.Errorf("field clusterID is required")
+	}
+	if r.Spec.Image == "" {
+		return fmt.Errorf("field image is required")
+	}
+
+	return nil
 }

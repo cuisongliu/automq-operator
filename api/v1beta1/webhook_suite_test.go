@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net"
 	"path/filepath"
 	"runtime"
@@ -114,7 +115,7 @@ var _ = Describe("Default", func() {
 			Expect(err).To(BeNil())
 			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
 			Expect(err).To(BeNil())
-			Expect(aq.Spec.S3.Bucket).To(Equal("automq"))
+			Expect(aq.Spec.S3.Bucket).To(Equal("ko3"))
 		})
 		It("Default Replicas", func() {
 			aq := initAutoMQ()
@@ -133,6 +134,55 @@ var _ = Describe("Default", func() {
 			Expect(err).To(BeNil())
 			Expect(aq.Spec.Controller.JVMOptions).To(Equal([]string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m"}))
 			Expect(aq.Spec.Broker.JVMOptions).To(Equal([]string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m", "-XX:MaxDirectMemorySize=1G"}))
+		})
+	})
+
+})
+var _ = Describe("Update", func() {
+	Context("Update Webhook", func() {
+		BeforeEach(func() {
+			aq := initAutoMQ()
+			_ = k8sClient.Delete(context.Background(), aq)
+		})
+		It("Update Endpoint", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			aq.Spec.S3.Endpoint = "http://localhost:9001"
+			err = k8sClient.Update(context.Background(), aq)
+			Expect(true).To(Equal(errors.IsForbidden(err)))
+			Expect(err.Error()).To(ContainSubstring("s3.Endpoint"))
+			Expect(err.Error()).To(ContainSubstring("immutable"))
+		})
+		It("Update Region", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			aq.Spec.S3.Region = "minioadmin1"
+			err = k8sClient.Update(context.Background(), aq)
+			Expect(true).To(Equal(errors.IsForbidden(err)))
+			Expect(err.Error()).To(ContainSubstring("s3.Region"))
+			Expect(err.Error()).To(ContainSubstring("immutable"))
+		})
+		It("Update Bucket", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			aq.Spec.S3.Bucket = "minioadmin1"
+			err = k8sClient.Update(context.Background(), aq)
+			Expect(true).To(Equal(errors.IsForbidden(err)))
+			Expect(err.Error()).To(ContainSubstring("s3.Bucket"))
+			Expect(err.Error()).To(ContainSubstring("immutable"))
+		})
+		It("Update ClusterID", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			aq.Spec.ClusterID = "minioadmin1"
+			err = k8sClient.Update(context.Background(), aq)
+			Expect(true).To(Equal(errors.IsForbidden(err)))
+			Expect(err.Error()).To(ContainSubstring("clusterID"))
+			Expect(err.Error()).To(ContainSubstring("immutable"))
 		})
 	})
 
