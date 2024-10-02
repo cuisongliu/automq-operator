@@ -208,9 +208,6 @@ var _ = BeforeSuite(func() {
 
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
 			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
-			//MutatingWebhooks:         nil,
-			//ValidatingWebhooks:       nil,
-			IgnoreErrorIfPathMissing: false,
 		},
 	}
 
