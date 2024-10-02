@@ -120,8 +120,7 @@ type BrokerSpec struct {
 type MetricsSpec struct {
 	// Enable is the flag to enable the metrics
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=prometheus;otlp
-	// +kubebuilder:default=prometheus
+	// +kubebuilder:default=true
 	Enable bool `json:"enable,omitempty"`
 	// ImportDashboard is the flag to import the dashboard.
 	// +kubebuilder:default=true

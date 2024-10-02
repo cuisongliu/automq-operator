@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package v1beta1
 
 const (
 	DefaultImageName = "automqinc/automq:1.2.0-rc1"

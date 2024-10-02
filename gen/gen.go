@@ -18,11 +18,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/cuisongliu/automq-operator/api/v1beta1"
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/cuisongliu/automq-operator/internal/controller"
 )
 
 func main() {
@@ -33,7 +32,7 @@ func main() {
 	imageName := os.Args[1]
 	fmt.Printf("image name is %s", imageName)
 	_ = os.MkdirAll("deploy/images/shim", 0755)
-	_ = os.WriteFile("deploy/images/shim/image.txt", []byte(controller.DefaultImageName), 0755)
+	_ = os.WriteFile("deploy/images/shim/image.txt", []byte(v1beta1.DefaultImageName), 0755)
 	cmd1 := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\image: %s' deploy/charts/automq-operator/values.yaml", imageName)
 	if err := execCmd("bash", "-c", cmd1); err != nil {
 		fmt.Printf("execCmd error %v", err)

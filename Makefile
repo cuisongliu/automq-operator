@@ -47,7 +47,7 @@ help: ## Display this help.
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-
+	@cp -rf config/crd/bases/* deploy/charts/automq-operator/crds/
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
@@ -62,7 +62,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... --ginkgo.v -v --ginkgo.trace
 
 ##@ Build
 
@@ -163,11 +163,8 @@ $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 
-.PHONY: crd
-crd: manifests generate kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	@cp -rf config/crd/bases/* deploy/charts/automq-operator/crds/
-
 info:
 	@cat deploy/charts/automq-operator/values.yaml
 	@cat deploy/charts/automq-operator/Chart.yaml
 	@cat deploy/images/shim/image.txt
+

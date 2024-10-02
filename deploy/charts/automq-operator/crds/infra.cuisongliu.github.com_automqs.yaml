@@ -155,12 +155,8 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
-                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    This field is effectively required, but due to backwards compatibility is
-                                    allowed to be empty. Instances of this type with an empty value here are
-                                    almost certainly wrong.
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                   type: string
                                 optional:
@@ -221,12 +217,8 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
-                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    This field is effectively required, but due to backwards compatibility is
-                                    allowed to be empty. Instances of this type with an empty value here are
-                                    almost certainly wrong.
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                   type: string
                                 optional:
@@ -272,12 +264,6 @@ spec:
                                 Name must match the name of one entry in pod.spec.resourceClaims of
                                 the Pod where this field is used. It makes that resource available
                                 inside a container.
-                              type: string
-                            request:
-                              description: |-
-                                Request is the name chosen for a request in the referenced claim.
-                                If empty, everything from the claim is made available, otherwise
-                                only the result of this request.
                               type: string
                           required:
                           - name
@@ -418,12 +404,8 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
-                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    This field is effectively required, but due to backwards compatibility is
-                                    allowed to be empty. Instances of this type with an empty value here are
-                                    almost certainly wrong.
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                   type: string
                                 optional:
@@ -484,12 +466,8 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
-                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    This field is effectively required, but due to backwards compatibility is
-                                    allowed to be empty. Instances of this type with an empty value here are
-                                    almost certainly wrong.
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                   type: string
                                 optional:
@@ -536,12 +514,6 @@ spec:
                                 the Pod where this field is used. It makes that resource available
                                 inside a container.
                               type: string
-                            request:
-                              description: |-
-                                Request is the name chosen for a request in the referenced claim.
-                                If empty, everything from the claim is made available, otherwise
-                                only the result of this request.
-                              type: string
                           required:
                           - name
                           type: object
@@ -582,11 +554,8 @@ spec:
                 description: Metrics is the metrics configuration for the AutoMQ
                 properties:
                   enable:
-                    default: prometheus
+                    default: true
                     description: Enable is the flag to enable the metrics
-                    enum:
-                    - prometheus
-                    - otlp
                     type: boolean
                   importDashboard:
                     default: true
