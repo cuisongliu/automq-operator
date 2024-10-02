@@ -15,6 +15,9 @@ podAnnotations: {}
 podSecurityContext:
   runAsNonRoot: true
 
+webhook:
+  enabled: true
+
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:

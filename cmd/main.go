@@ -34,6 +34,7 @@ import (
 
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"github.com/cuisongliu/automq-operator/internal/controller"
+
 	//+kubebuilder:scaffold:imports
 
 	utilcontroller "github.com/labring/operator-sdk/controller"
@@ -100,6 +101,12 @@ func main() {
 	}).SetupWithManager(mgr, rateLimiterOptions); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AutoMQ")
 		os.Exit(1)
+	}
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&infrav1beta1.AutoMQ{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AutoMQ")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 

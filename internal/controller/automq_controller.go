@@ -126,6 +126,7 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 	if !ok {
 		return ctrl.Result{}, errors.New("obj convert automq is error")
 	}
+
 	// Let's just set the status as Unknown when no status are available
 	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		original := &infrav1beta1.AutoMQ{}
@@ -138,9 +139,6 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		log.Error(err, "Failed to update automq status")
 		return ctrl.Result{}, err
 	}
-	//if automq.Status.Phase == infrav1beta1.AutoMQError {
-	//	return ctrl.Result{}, fmt.Errorf("automq error: %s", automq.Status.Message)
-	//}
 	return ctrl.Result{}, nil
 }
 
