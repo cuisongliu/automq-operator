@@ -23,3 +23,35 @@ jobs:
       - name: build
         run: |
           make test
+  job1:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Set up Go
+        uses: actions/setup-go@master
+        with:
+          go-version: 1.23.x
+
+      - name: Verify sealos
+        run: |
+          wget https://github.com/labring/sealos/releases/download/v4.3.7/sealos_4.3.7_linux_amd64.tar.gz
+          tar -zxvf sealos_4.3.7_linux_amd64.tar.gz sealos
+          sudo chmod a+x sealos
+          sudo mv sealos /usr/bin/
+          sudo sealos version
+      - name: prune os
+        run: |
+          sudo systemctl unmask containerd
+          sudo systemctl unmask docker
+          sudo apt-get remove -y moby-buildx moby-cli moby-compose moby-containerd moby-engine
+          sudo apt-get remove docker docker-engine docker.io containerd runc
+          sudo apt-get purge docker-ce docker-ce-cli containerd.io # docker-compose-plugin
+          sudo apt-get remove -y moby-engine moby-cli moby-buildx moby-compose
+          sudo rm -rf /var/run/docker.sock
+          sudo rm -rf /run/containerd/containerd.sock
+          sudo sealos run labring/kubernetes:v1.25.0 labring/helm:v3.8.2 labring/calico:v3.26.5  labring/openebs:v3.9.0
+      - name: build
+        run: |
+          sudo make e2e
