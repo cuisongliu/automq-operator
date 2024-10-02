@@ -554,11 +554,8 @@ spec:
                 description: Metrics is the metrics configuration for the AutoMQ
                 properties:
                   enable:
-                    default: prometheus
+                    default: true
                     description: Enable is the flag to enable the metrics
-                    enum:
-                    - prometheus
-                    - otlp
                     type: boolean
                   importDashboard:
                     default: true

@@ -33,8 +33,6 @@ func (r *AutoMQ) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
 //+kubebuilder:webhook:path=/mutate-infra-cuisongliu-github-com-v1beta1-automq,mutating=true,failurePolicy=fail,sideEffects=None,groups=infra.cuisongliu.github.com,resources=automqs,verbs=create;update,versions=v1beta1,name=mautomq.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &AutoMQ{}
@@ -42,8 +40,30 @@ var _ webhook.Defaulter = &AutoMQ{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *AutoMQ) Default() {
 	automqlog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
+	if r.Spec.Image == "" {
+		r.Spec.Image = DefaultImageName
+	}
+	if r.Spec.S3.Region == "" {
+		r.Spec.S3.Region = "us-east-1"
+	}
+	if r.Spec.ClusterID == "" {
+		r.Spec.ClusterID = "rZdE0DjZSrqy96PXrMUZVw"
+	}
+	if r.Spec.S3.Bucket == "" {
+		r.Spec.S3.Bucket = "automq"
+	}
+	if r.Spec.Controller.JVMOptions == nil {
+		r.Spec.Controller.JVMOptions = []string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m"}
+	}
+	if r.Spec.Controller.Replicas == 0 {
+		r.Spec.Controller.Replicas = 1
+	}
+	if r.Spec.Broker.JVMOptions == nil {
+		r.Spec.Broker.JVMOptions = []string{"-Xms1g", "-Xmx1g", "-XX:MetaspaceSize=96m", "-XX:MaxDirectMemorySize=1G"}
+	}
+	if r.Spec.Broker.Replicas == 0 {
+		r.Spec.Broker.Replicas = 1
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

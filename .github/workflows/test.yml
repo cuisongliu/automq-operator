@@ -1,0 +1,25 @@
+name: 🧪 E2E Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  job0:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+
+      - name: Set up Go
+        uses: actions/setup-go@master
+        with:
+          go-version: 1.23.x
+
+      - name: build
+        run: |
+          make test

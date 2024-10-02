@@ -26,6 +26,9 @@ import (
 	"testing"
 	"time"
 
+	v1 "k8s.io/api/admissionregistration/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -57,6 +60,31 @@ func TestAPIs(t *testing.T) {
 	RunSpecs(t, "Webhook Suite")
 }
 
+func initAutoMQ() *AutoMQ {
+	return &AutoMQ{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+		},
+		Spec: AutoMQSpec{
+			S3: S3Spec{
+				Endpoint:        "http://localhost:9000",
+				AccessKeyID:     "minioadmin",
+				SecretAccessKey: "minioadmin",
+			},
+		},
+	}
+}
+
+var _ = Describe("Default", func() {
+	It("ImageName", func() {
+		aq := initAutoMQ()
+		err := k8sClient.Create(context.Background(), aq)
+		Expect(err).To(BeNil())
+		Expect(aq.Spec.Image).To(Equal(DefaultImageName))
+	})
+})
+
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
@@ -65,7 +93,7 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: false,
+		ErrorIfCRDPathMissing: true,
 
 		// The BinaryAssetsDirectory is only required if you want to run the tests directly
 		// without call the makefile target test. If not informed it will look for the
@@ -77,6 +105,9 @@ var _ = BeforeSuite(func() {
 
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
 			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
+			//MutatingWebhooks:         nil,
+			//ValidatingWebhooks:       nil,
+			IgnoreErrorIfPathMissing: false,
 		},
 	}
 
@@ -92,7 +123,10 @@ var _ = BeforeSuite(func() {
 
 	err = admissionv1.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
-
+	err = v1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = apiextensionsv1.AddToScheme(scheme)
+	Expect(err).NotTo(HaveOccurred())
 	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
@@ -135,7 +169,6 @@ var _ = BeforeSuite(func() {
 		conn.Close()
 		return nil
 	}).Should(Succeed())
-
 })
 
 var _ = AfterSuite(func() {
