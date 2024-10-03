@@ -20,12 +20,14 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"net"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/cuisongliu/automq-operator/defaults"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	v1 "k8s.io/api/admissionregistration/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -89,7 +91,7 @@ var _ = Describe("Default", func() {
 			Expect(err).To(BeNil())
 			err = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(aq), aq)
 			Expect(err).To(BeNil())
-			Expect(aq.Spec.Image).To(Equal(DefaultImageName))
+			Expect(aq.Spec.Image).To(Equal(defaults.DefaultImageName))
 		})
 		It("Default Region", func() {
 			aq := initAutoMQ()
