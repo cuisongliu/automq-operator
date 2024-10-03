@@ -44,6 +44,9 @@ func main() {
 		os.Exit(1)
 	}
 	shotVersion := strings.ReplaceAll(version[1], "v", "")
+	if shotVersion == "latest" {
+		shotVersion = "0.0.0"
+	}
 	cmd2 := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\version: %s' deploy/charts/automq-operator/Chart.yaml", shotVersion)
 	if err := execCmd("bash", "-c", cmd2); err != nil {
 		fmt.Printf("execCmd error %v", err)

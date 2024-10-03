@@ -61,7 +61,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
+test: fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./api/... --ginkgo.v -v --ginkgo.trace
 
 ##@ Build
@@ -169,5 +169,5 @@ info:
 	@cat deploy/images/shim/image.txt
 
 .PHONY: e2e
-e2e: manifests generate fmt vet envtest ## Run tests.
+e2e: fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./e2e/... --ginkgo.v -v --ginkgo.trace
