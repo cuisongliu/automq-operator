@@ -18,6 +18,8 @@ package v1beta1
 
 import (
 	"fmt"
+
+	"github.com/cuisongliu/automq-operator/defaults"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,7 +44,7 @@ var _ webhook.Defaulter = &AutoMQ{}
 func (r *AutoMQ) Default() {
 	automqlog.Info("default", "name", r.Name)
 	if r.Spec.Image == "" {
-		r.Spec.Image = DefaultImageName
+		r.Spec.Image = defaults.DefaultImageName
 	}
 	if r.Spec.S3.Region == "" {
 		r.Spec.S3.Region = "us-east-1"
