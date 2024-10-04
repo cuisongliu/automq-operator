@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -35,16 +34,5 @@ func (r *AutoMQReconciler) statusReconcile(ctx context.Context, obj client.Objec
 	automq.Status.Phase = infrav1beta1.AutoMQPending
 	// Let's just set the status as Unknown when no status are available
 
-	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		original := &infrav1beta1.AutoMQ{}
-		if err := r.Get(ctx, client.ObjectKeyFromObject(automq), original); err != nil {
-			return err
-		}
-		original.Status = *automq.Status.DeepCopy()
-		return r.Client.Status().Update(ctx, original)
-	}); err != nil {
-		log.Error(err, "Failed to update automq status")
-		return err
-	}
-	return nil
+	return r.syncStatus(ctx, automq)
 }

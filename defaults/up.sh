@@ -243,6 +243,7 @@ kafka_up() {
           --s3.access.key) set_once s3_access_key "${2}" "s3 access key"; shift 2;;
           --s3.secret.key) set_once s3_secret_key "${2}" "s3 secret key"; shift 2;;
           --s3.endpoint) set_once s3_endpoint "${2}" "s3 endpoint"; shift 2;;
+          --s3.path.style) set_once s3_path_style "${2}" "s3 path style"; shift 2;;
       esac
   done
 
@@ -260,13 +261,14 @@ kafka_up() {
   [[ -n "${s3_access_key}" ]] || s3_access_key="${KAFKA_S3_ACCESS_KEY}"
   [[ -n "${s3_secret_key}" ]] || s3_secret_key="${KAFKA_S3_SECRET_KEY}"
   [[ -n "${s3_endpoint}" ]] || die "s3_endpoint is empty"
+  [[ -n "${s3_path_style}" ]] || die "s3_path_style is empty"
   [[ -n "${cluster_id}" ]] || cluster_id="rZdE0DjZSrqy96PXrMUZVw"
 
   for role in "broker" "controller" "server"; do
       setup_value "node.id" "${node_id}" "${kafka_dir}/config/kraft/${role}.properties"
       setup_value "controller.quorum.voters" "${quorum_voters}" "${kafka_dir}/config/kraft/${role}.properties"
-      setup_value "s3.data.bucket" "0@s3://${s3_bucket}?region=${s3_region}&endpoint=${s3_endpoint}&accessKey=static" "${kafka_dir}/config/kraft/${role}.properties"
-      setup_value "s3.ops.bucket" "0@s3://${s3_bucket}?region=${s3_region}&endpoint=${s3_endpoint}&accessKey=static" "${kafka_dir}/config/kraft/${role}.properties"
+      setup_value "s3.data.bucket" "0@s3://${s3_bucket}?region=${s3_region}&endpoint=${s3_endpoint}&accessKey=static&pathStyle=${s3_path_style}" "${kafka_dir}/config/kraft/${role}.properties"
+      setup_value "s3.ops.bucket" "0@s3://${s3_bucket}?region=${s3_region}&endpoint=${s3_endpoint}&accessKey=static&pathStyle=${s3_path_style}" "${kafka_dir}/config/kraft/${role}.properties"
       setup_value "log.dirs" "${data_path}/kraft-${role}-logs" "${kafka_dir}/config/kraft/${role}.properties"
       setup_value "s3.wal.path" "0@file://${data_path}/wal?capacity=2147483648" "${kafka_dir}/config/kraft/${role}.properties"
       # turn on auto_balancer

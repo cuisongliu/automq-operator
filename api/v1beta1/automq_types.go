@@ -41,10 +41,16 @@ type S3Spec struct {
 	// Bucket is the bucket name for storing the operations data
 	// +kubebuilder:validation:Required
 	Bucket string `json:"bucket,omitempty"`
+	// EnablePathStyle is the flag to enable the path style. Default is false.
+	// Whether to enable object storage path format. Must be set to true when using MinIO as the storage service.
+	// +kubebuilder:default=false
+	EnablePathStyle bool `json:"enablePathStyle,omitempty"`
 }
 
 type NodeAffinity struct {
 	// Type is the type of the node affinity. Supported values are "soft" and "hard"
+	// +kubebuilder:validation:Enum=soft;hard
+	// +kubebuilder:validation:Required
 	Type string `json:"type,omitempty"`
 	// NodeSelector is the node selector for the node affinity.
 	// +kubebuilder:minItems=1
@@ -65,6 +71,8 @@ type NodeSelector struct {
 
 type PodAffinity struct {
 	// Type is the type of the node affinity. Supported values are "soft" and "hard"
+	// +kubebuilder:validation:Enum=soft;hard
+	// +kubebuilder:validation:Required
 	Type string `json:"type,omitempty"`
 	// Weight is the weight of the pod affinity. When the type is "soft", the weight is used to select the pods. Default is 40.
 	// +kubebuilder:default=40
@@ -73,6 +81,8 @@ type PodAffinity struct {
 
 type PodAntiAffinity struct {
 	// Type is the type of the node anti affinity. Supported values are "soft" and "hard"
+	// +kubebuilder:validation:Enum=soft;hard
+	// +kubebuilder:validation:Required
 	Type string `json:"type,omitempty"`
 	// Weight is the weight of the pod anti affinity. When the type is "soft", the weight is used to select the pods. Default is 40.
 	// +kubebuilder:default=40
@@ -88,6 +98,12 @@ type AffinitySpec struct {
 	PodAffinity *PodAffinity `json:"podAffinity,omitempty"`
 }
 
+func (in *AffinitySpec) ToK8sAffinity() *v1.Affinity {
+	affinity := &v1.Affinity{}
+	//TODO implement the conversion
+	return affinity
+}
+
 type ControllerSpec struct {
 	// Replicas is the number of controller replicas
 	// +kubebuilder:validation:Minimum=1
@@ -100,6 +116,8 @@ type ControllerSpec struct {
 	Resource v1.ResourceRequirements `json:"resource,omitempty"`
 	// Affinity is the affinity for the controller
 	Affinity *AffinitySpec `json:"affinity,omitempty"`
+	// StorageClass is the storage class for the controller
+	StorageClass string `json:"storageClass,omitempty"`
 }
 
 type BrokerSpec struct {
@@ -114,6 +132,8 @@ type BrokerSpec struct {
 	Resource v1.ResourceRequirements `json:"resource,omitempty"`
 	// Affinity is the affinity for the broker
 	Affinity *AffinitySpec `json:"affinity,omitempty"`
+	// StorageClass is the storage class for the controller
+	StorageClass string `json:"storageClass,omitempty"`
 }
 
 // MetricsSpec is the metrics configuration for the AutoMQ
@@ -155,6 +175,7 @@ const (
 	AutoMQError          AutoMQPhase = "Error"
 	AutoMQReady          AutoMQPhase = "Ready"
 	AutoMQInProcess      AutoMQPhase = "InProcess"
+	AutoMQUnknown        AutoMQPhase = "Unknown"
 	AutoMQDefaultMessage string      = "success"
 )
 
@@ -165,15 +186,25 @@ type AutoMQStatus struct {
 	Phase AutoMQPhase `json:"phase,omitempty"`
 	// Conditions contains the different condition statuses for this automq.
 	// +optional
-	Conditions []StatusCondition `json:"conditions"`
+	Conditions []metav1.Condition `json:"conditions"`
 	// ReadyPods is the number of ready pods for the AutoMQ
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=0
 	ReadyPods int32 `json:"readyPods"`
-	// ShortMessage is a human-readable string indicating details about why the AutoMQ is in this condition.
+	// ControllerReplicas is the number of controller replicas for the AutoMQ
 	// +optional
-	ShortMessage string `json:"shortMessage,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:default=0
+	ControllerReplicas int32 `json:"controllerReplicas"`
+	// ControllerAddress is the address of the controller
+	// +optional
+	ControllerAddresses []string `json:"controllerAddresses,omitempty"`
+	// BrokerReplicas is the number of broker replicas for the AutoMQ
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:default=0
+	BrokerReplicas int32 `json:"brokerReplicas"`
 }
 
 //+kubebuilder:object:root=true
@@ -181,7 +212,6 @@ type AutoMQStatus struct {
 // +kubebuilder:resource:scope=Namespaced
 // +kubebuilder:printcolumn:name="Ready Pods",type=string,JSONPath=`.status.readyPods`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.shortMessage`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // AutoMQ is the Schema for the automqs API

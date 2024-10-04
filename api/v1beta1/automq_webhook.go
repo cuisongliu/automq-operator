@@ -130,6 +130,28 @@ func validate(r *AutoMQ) error {
 	if r.Spec.Image == "" {
 		return fmt.Errorf("field image is required")
 	}
-
+	if len(r.Spec.Controller.JVMOptions) == 0 {
+		return fmt.Errorf("field controller.jvmOptions is required")
+	}
+	if len(r.Spec.Broker.JVMOptions) == 0 {
+		return fmt.Errorf("field broker.jvmOptions is required")
+	}
+	if r.Spec.Controller.Affinity != nil {
+		if r.Spec.Controller.Affinity.PodAntiAffinity != nil {
+			if r.Spec.Controller.Affinity.PodAntiAffinity.Type == "" {
+				return fmt.Errorf("field controller.affinity.podAntiAffinity.type is required")
+			}
+		}
+		if r.Spec.Controller.Affinity.PodAffinity != nil {
+			if r.Spec.Controller.Affinity.PodAffinity.Type == "" {
+				return fmt.Errorf("field controller.affinity.podAffinity.type is required")
+			}
+		}
+		if r.Spec.Controller.Affinity.NodeAffinity != nil {
+			if r.Spec.Controller.Affinity.NodeAffinity.Type == "" {
+				return fmt.Errorf("field controller.affinity.nodeAffinity.type is required")
+			}
+		}
+	}
 	return nil
 }
