@@ -21,7 +21,7 @@ jobs:
               vPrefix = true
               releaseBranch = main
               versionFile = .tagpr
-              command = go run gen/gen.go ghcr.io/${{ github.repository_owner }}/automq-operator:${{ github.event.inputs.version }} && make info
+              command = go run gen/version/gen.go ghcr.io/${{ github.repository_owner }}/automq-operator:${{ github.event.inputs.version }} && make info
               release = false
               changelog = true
           EOF

@@ -61,7 +61,7 @@ jobs:
           sudo sealos version
       - name: build
         run: |
-          go run gen/gen.go ghcr.io/${{ github.repository_owner }}/automq-operator:latest && make info
+          go run gen/version/gen.go ghcr.io/${{ github.repository_owner }}/automq-operator:latest && make info
           cd deploy
           IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/automq-operator-sealos:latest"
           sudo sealos build -t "${IMAGE_NAME}"-amd64 --platform linux/amd64 . && sudo rm -rf registry
