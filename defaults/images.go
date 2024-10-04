@@ -18,4 +18,5 @@ package defaults
 
 const (
 	DefaultImageName = "automqinc/automq:1.2.0-rc1"
+	BusyboxImageName = "busybox:1.36.1"
 )

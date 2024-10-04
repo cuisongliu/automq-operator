@@ -21,9 +21,6 @@ spec:
     - jsonPath: .status.phase
       name: Phase
       type: string
-    - jsonPath: .status.shortMessage
-      name: Message
-      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -81,6 +78,9 @@ spec:
                           type:
                             description: Type is the type of the node affinity. Supported
                               values are "soft" and "hard"
+                            enum:
+                            - soft
+                            - hard
                             type: string
                           weight:
                             default: 40
@@ -89,6 +89,8 @@ spec:
                               the node. Default is 40.
                             format: int32
                             type: integer
+                        required:
+                        - type
                         type: object
                       podAffinity:
                         description: PodAffinity is the pod affinity for the pod
@@ -96,6 +98,9 @@ spec:
                           type:
                             description: Type is the type of the node affinity. Supported
                               values are "soft" and "hard"
+                            enum:
+                            - soft
+                            - hard
                             type: string
                           weight:
                             default: 40
@@ -104,6 +109,8 @@ spec:
                               the pods. Default is 40.
                             format: int32
                             type: integer
+                        required:
+                        - type
                         type: object
                       podAntiAffinity:
                         description: PodAntiAffinity is the pod anti-affinity for
@@ -112,6 +119,9 @@ spec:
                           type:
                             description: Type is the type of the node anti affinity.
                               Supported values are "soft" and "hard"
+                            enum:
+                            - soft
+                            - hard
                             type: string
                           weight:
                             default: 40
@@ -120,6 +130,8 @@ spec:
                               the pods. Default is 40.
                             format: int32
                             type: integer
+                        required:
+                        - type
                         type: object
                     type: object
                   envs:
@@ -297,6 +309,9 @@ spec:
                           More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                         type: object
                     type: object
+                  storageClass:
+                    description: StorageClass is the storage class for the controller
+                    type: string
                 type: object
               clusterID:
                 description: ClusterID is the ID of the cluster. Default is "rZdE0DjZSrqy96PXrMUZVw"
@@ -330,6 +345,9 @@ spec:
                           type:
                             description: Type is the type of the node affinity. Supported
                               values are "soft" and "hard"
+                            enum:
+                            - soft
+                            - hard
                             type: string
                           weight:
                             default: 40
@@ -338,6 +356,8 @@ spec:
                               the node. Default is 40.
                             format: int32
                             type: integer
+                        required:
+                        - type
                         type: object
                       podAffinity:
                         description: PodAffinity is the pod affinity for the pod
@@ -345,6 +365,9 @@ spec:
                           type:
                             description: Type is the type of the node affinity. Supported
                               values are "soft" and "hard"
+                            enum:
+                            - soft
+                            - hard
                             type: string
                           weight:
                             default: 40
@@ -353,6 +376,8 @@ spec:
                               the pods. Default is 40.
                             format: int32
                             type: integer
+                        required:
+                        - type
                         type: object
                       podAntiAffinity:
                         description: PodAntiAffinity is the pod anti-affinity for
@@ -361,6 +386,9 @@ spec:
                           type:
                             description: Type is the type of the node anti affinity.
                               Supported values are "soft" and "hard"
+                            enum:
+                            - soft
+                            - hard
                             type: string
                           weight:
                             default: 40
@@ -369,6 +397,8 @@ spec:
                               the pods. Default is 40.
                             format: int32
                             type: integer
+                        required:
+                        - type
                         type: object
                     type: object
                   envs:
@@ -546,6 +576,9 @@ spec:
                           More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                         type: object
                     type: object
+                  storageClass:
+                    description: StorageClass is the storage class for the controller
+                    type: string
                 type: object
               image:
                 description: Image is the image of the AutoMQ
@@ -574,6 +607,12 @@ spec:
                     description: Bucket is the bucket name for storing the operations
                       data
                     type: string
+                  enablePathStyle:
+                    default: false
+                    description: |-
+                      EnablePathStyle is the flag to enable the path style. Default is false.
+                      Whether to enable object storage path format. Must be set to true when using MinIO as the storage service.
+                    type: boolean
                   endpoint:
                     description: Endpoint is the endpoint of the S3 service
                     type: string
@@ -601,36 +640,83 @@ spec:
           status:
             description: AutoMQStatus defines the observed state of AutoMQ
             properties:
+              brokerReplicas:
+                default: 0
+                description: BrokerReplicas is the number of broker replicas for the
+                  AutoMQ
+                format: int32
+                minimum: 0
+                type: integer
               conditions:
                 description: Conditions contains the different condition statuses
                   for this automq.
                 items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
-                      description: LastTransitionTime is the last time the condition
-                        changed from one status to another.
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: Message is a human-readable message indicating
-                        details about the last status change.
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
                       type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
                     reason:
-                      description: Reason is a (brief) reason for the condition's
-                        last status change.
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
                       type: string
                     status:
-                      description: Status is the status of the condition. One of True,
-                        False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
                       type: string
                     type:
-                      description: Type is the type of the condition.
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
                   required:
+                  - lastTransitionTime
+                  - message
+                  - reason
                   - status
                   - type
                   type: object
                 type: array
+              controllerAddresses:
+                description: ControllerAddress is the address of the controller
+                items:
+                  type: string
+                type: array
+              controllerReplicas:
+                default: 0
+                description: ControllerReplicas is the number of controller replicas
+                  for the AutoMQ
+                format: int32
+                minimum: 0
+                type: integer
               phase:
                 default: Unknown
                 description: Phase represents the current phase of AutoMQ.
@@ -641,10 +727,6 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
-              shortMessage:
-                description: ShortMessage is a human-readable string indicating details
-                  about why the AutoMQ is in this condition.
-                type: string
             type: object
         type: object
     served: true

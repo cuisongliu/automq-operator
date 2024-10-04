@@ -19,8 +19,14 @@ package controller
 import (
 	"context"
 	"errors"
+	"fmt"
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
+	"github.com/cuisongliu/automq-operator/defaults"
+	"github.com/cuisongliu/automq-operator/internal/pkg/storage"
 	"github.com/labring/operator-sdk/controller"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
@@ -40,6 +46,7 @@ type AutoMQReconciler struct {
 	Scheme    *runtime.Scheme
 	Recorder  record.EventRecorder
 	Finalizer string
+	MountTZ   bool
 }
 
 // finalizeSetting will perform the required operations before delete the CR.
@@ -126,20 +133,21 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 	if !ok {
 		return ctrl.Result{}, errors.New("obj convert automq is error")
 	}
-
-	// Let's just set the status as Unknown when no status are available
-	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		original := &infrav1beta1.AutoMQ{}
-		if err = r.Get(ctx, client.ObjectKeyFromObject(automq), original); err != nil {
-			return err
-		}
-		original.Status = *automq.Status.DeepCopy()
-		return r.Client.Status().Update(ctx, original)
-	}); err != nil {
-		log.Error(err, "Failed to update automq status")
-		return ctrl.Result{}, err
+	automq.Status.ControllerAddresses = r.controllerVoters(automq)
+	pipelines := []func(ctx context.Context, mq *infrav1beta1.AutoMQ) context.Context{
+		r.s3Service,
+		r.scriptConfigmap,
+		r.syncControllersScale,
+		r.syncControllers,
 	}
-	return ctrl.Result{}, nil
+
+	for _, fn := range pipelines {
+		ctx = fn(ctx, automq)
+	}
+	automq.Status.ControllerReplicas = automq.Spec.Controller.Replicas
+	automq.Status.BrokerReplicas = automq.Spec.Broker.Replicas
+	err = r.syncStatus(ctx, automq)
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -159,3 +167,126 @@ func (r *AutoMQReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Ra
 		For(&infrav1beta1.AutoMQ{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
+
+func (r *AutoMQReconciler) syncStatus(ctx context.Context, automq *infrav1beta1.AutoMQ) error {
+	log := log.FromContext(ctx)
+	// Let's just set the status as Unknown when no status are available
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		original := &infrav1beta1.AutoMQ{}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(automq), original); err != nil {
+			return err
+		}
+		original.Status = *automq.Status.DeepCopy()
+		return r.Client.Status().Update(ctx, original)
+	}); err != nil {
+		log.Error(err, "Failed to update automq status")
+		return err
+	}
+	return nil
+}
+
+func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+	conditionType := "SyncS3ServiceReady"
+	sg, err := storage.NewBucket(storage.Config{
+		Type:     "s3",
+		Key:      obj.Spec.S3.AccessKeyID,
+		Secret:   obj.Spec.S3.SecretAccessKey,
+		Region:   obj.Spec.S3.Region,
+		Endpoint: obj.Spec.S3.Endpoint,
+	})
+	if err != nil {
+		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: obj.Generation,
+			Reason:             "AwsS3ReconcilingInit",
+			Message:            fmt.Sprintf("Failed to create S3 Bucket interface for the custom resource (%s): (%s)", obj.Name, err),
+		})
+		return ctx
+	}
+	_ = sg.MkBucket(ctx, obj.Spec.S3.Bucket)
+	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+		Type:               conditionType,
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: obj.Generation,
+		Reason:             "AwsS3Reconciling",
+		Message:            fmt.Sprintf("S3 Bucket interface for the custom resource (%s) has been created", obj.Name),
+	})
+	return ctx
+}
+
+func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+	log := log.FromContext(ctx)
+	conditionType := "SyncConfigmapReady"
+	data, err := defaults.Asset("defaults/up.sh")
+	if err != nil {
+		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: obj.Generation,
+			Reason:             "ConfigmapReconcilingInit",
+			Message:            fmt.Sprintf("Failed to create script configmap for the custom resource (%s): (%s)", obj.Name, err),
+		})
+		return ctx
+	}
+	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var change controllerutil.OperationResult
+		var e error
+		cm := &v1.ConfigMap{}
+		cm.Name = obj.Name
+		cm.Namespace = obj.Namespace
+		if change, e = controllerutil.CreateOrUpdate(ctx, r.Client, cm, func() error {
+			cm.Data = map[string]string{
+				"up.sh": string(data),
+			}
+			return nil
+		}); e != nil {
+			return e
+		}
+		log.V(1).Info("create or update configmap  by AutoMQ", "OperationResult", change)
+		return nil
+	}); err != nil {
+		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: obj.Generation,
+			Reason:             "ConfigmapReconcilingCreate",
+			Message:            fmt.Sprintf("Failed to create script configmap for the custom resource (%s): (%s)", obj.Name, err),
+		})
+		return ctx
+	}
+
+	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+		Type:               conditionType,
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: obj.Generation,
+		Reason:             "ConfigmapReconciling",
+		Message:            fmt.Sprintf("Configmap script for the custom resource (%s) has been created", obj.Name),
+	})
+	return ctx
+}
+
+func getAutoMQLabelMap(name, role string) map[string]string {
+	if role == "" {
+		return map[string]string{
+			"app.kubernetes.io/owner-by":  "automq",
+			"app.kubernetes.io/component": "autpmq-operator",
+			"app.kubernetes.io/instance":  name,
+		}
+	}
+	return map[string]string{
+		"app.kubernetes.io/owner-by":  "automq",
+		"app.kubernetes.io/component": "autpmq-operator",
+		"app.kubernetes.io/instance":  name,
+		"app.kubernetes.io/role":      role,
+	}
+}
+
+func getAutoMQName(role string, index *int32) string {
+	if index != nil {
+		return "automq-" + role + fmt.Sprintf("-%d", *index)
+	}
+	return "automq-" + role
+}
+
+const autoMQIndexKey = "app.kubernetes.io/index"

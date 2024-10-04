@@ -39,3 +39,12 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+args:
+  burst: 100
+  concurrent: 5
+  qps: 10
+  leader: true
+  maxDelay: 16m40s
+  minDelay: 5ms
+  mountTZ: false

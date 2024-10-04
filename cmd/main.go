@@ -24,6 +24,9 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
+	"github.com/cuisongliu/automq-operator/internal/controller"
+	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -31,9 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-
-	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
-	"github.com/cuisongliu/automq-operator/internal/controller"
 
 	//+kubebuilder:scaffold:imports
 
@@ -50,6 +50,7 @@ func init() {
 
 	utilruntime.Must(infrav1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+	utilruntime.Must(promv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -57,8 +58,9 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var rateLimiterOptions utilcontroller.RateLimiterOptions
-
+	var mountTZ bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&mountTZ, "mount-tz", false, "Mount the /etc/localtime file from the host to the container.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
@@ -98,6 +100,7 @@ func main() {
 
 	if err = (&controller.AutoMQReconciler{
 		Finalizer: "apps.cuisongliu.com/automq.finalizer",
+		MountTZ:   mountTZ,
 	}).SetupWithManager(mgr, rateLimiterOptions); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AutoMQ")
 		os.Exit(1)
