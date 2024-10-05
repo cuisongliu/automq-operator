@@ -19,6 +19,8 @@ package controller
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -34,6 +36,15 @@ func (r *AutoMQReconciler) statusReconcile(ctx context.Context, obj client.Objec
 	}
 	automq.Status.Phase = infrav1beta1.AutoMQPending
 	// Let's just set the status as Unknown when no status are available
-
+	status := true
+	for _, v := range automq.Status.Conditions {
+		if v.Status != metav1.ConditionTrue {
+			status = false
+			break
+		}
+	}
+	if !status {
+		automq.Status.Phase = infrav1beta1.AutoMQError
+	}
 	return r.syncStatus(ctx, automq)
 }

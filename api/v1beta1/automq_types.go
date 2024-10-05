@@ -175,7 +175,6 @@ const (
 	AutoMQError          AutoMQPhase = "Error"
 	AutoMQReady          AutoMQPhase = "Ready"
 	AutoMQInProcess      AutoMQPhase = "InProcess"
-	AutoMQUnknown        AutoMQPhase = "Unknown"
 	AutoMQDefaultMessage string      = "success"
 )
 

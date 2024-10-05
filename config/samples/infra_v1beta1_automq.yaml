@@ -1,12 +1,21 @@
 apiVersion: infra.cuisongliu.github.com/v1beta1
 kind: AutoMQ
 metadata:
-  labels:
-    app.kubernetes.io/name: automq
-    app.kubernetes.io/instance: automq-sample
-    app.kubernetes.io/part-of: automq-operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: automq-operator
-  name: automq-sample
+  name: automq
 spec:
-  # TODO(user): Add fields here
+  s3:
+    endpoint: http://minio.minio.svc.cluster.local:9000
+    region: cn-north-1
+    accessKeyID: admin
+    secretAccessKey: minio123
+    bucket: automq
+    enablePathStyle: true
+  broker:
+    replicas: 1
+  controller:
+    replicas: 3
+    jvmOptions:
+      - -Xms1g
+      - -Xmx1g
+      - -XX:MetaspaceSize=96m
+  clusterID: "rZdE0DjZSrqy96PXrMUZVw"

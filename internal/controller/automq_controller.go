@@ -20,7 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"github.com/cuisongliu/automq-operator/defaults"
@@ -59,6 +62,21 @@ func (r *AutoMQReconciler) doFinalizerOperationsForSetting(ctx context.Context, 
 }
 
 func (r *AutoMQReconciler) cleanup(ctx context.Context, automq *infrav1beta1.AutoMQ) error {
+	err := r.cleanController(ctx, automq)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	cm := &v1.ConfigMap{}
+	cm.Name = automq.Name
+	cm.Namespace = automq.Namespace
+	err = r.Client.Delete(ctx, cm)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -147,6 +165,9 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 
 	for _, fn := range pipelines {
 		ctx = fn(ctx, automq)
+		if o, found := ctx.Value(ctxKey("goto")).(bool); found && o {
+			break
+		}
 	}
 	automq.Status.ControllerReplicas = automq.Spec.Controller.Replicas
 	automq.Status.BrokerReplicas = automq.Spec.Broker.Replicas
@@ -198,6 +219,11 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 		Region:   obj.Spec.S3.Region,
 		Endpoint: obj.Spec.S3.Endpoint,
 	})
+	setGoto := func() {
+		if err != nil {
+			ctx = context.WithValue(ctx, ctxKey("goto"), true)
+		}
+	}
 	if err != nil {
 		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 			Type:               conditionType,
@@ -206,9 +232,21 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 			Reason:             "AwsS3ReconcilingInit",
 			Message:            fmt.Sprintf("Failed to create S3 Bucket interface for the custom resource (%s): (%s)", obj.Name, err),
 		})
+		setGoto()
 		return ctx
 	}
-	_ = sg.MkBucket(ctx, obj.Spec.S3.Bucket)
+	err = sg.MkBucket(ctx, obj.Spec.S3.Bucket)
+	if err != nil && !strings.Contains(err.Error(), "BucketAlready") {
+		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: obj.Generation,
+			Reason:             "AwsS3ReconcilingBucket",
+			Message:            fmt.Sprintf("Failed to create S3 Bucket interface for the custom resource (%s): (%s)", obj.Name, err),
+		})
+		setGoto()
+		return ctx
+	}
 	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 		Type:               conditionType,
 		Status:             metav1.ConditionTrue,
