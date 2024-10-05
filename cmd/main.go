@@ -105,7 +105,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "AutoMQ")
 		os.Exit(1)
 	}
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+	if ew, _ := os.LookupEnv("ENABLE_WEBHOOKS"); ew != "false" {
 		if err = (&infrav1beta1.AutoMQ{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AutoMQ")
 			os.Exit(1)

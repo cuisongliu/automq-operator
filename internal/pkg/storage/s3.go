@@ -111,10 +111,10 @@ func newS3BucketService(cfg Config) (Bucket, error) {
 }
 
 func (s *s3Service) MkBucket(ctx context.Context, bucketName string) error {
-	_, _ = s.client.CreateBucket(ctx, &s3.CreateBucketInput{
+	_, err := s.client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: &bucketName,
 	})
-	return nil
+	return err
 }
 
 func (s *s3Service) HeadObjectFromAddress(ctx context.Context, address string) (bucket, object string, err error) {

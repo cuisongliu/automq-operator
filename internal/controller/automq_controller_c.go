@@ -39,6 +39,27 @@ const (
 	controllerRole = "controller"
 )
 
+func (r *AutoMQReconciler) cleanController(ctx context.Context, obj *infrav1beta1.AutoMQ) error {
+	for i := 0; i < int(obj.Status.ControllerReplicas); i++ {
+		svcc := &v1.Service{}
+		svcc.Namespace = obj.Namespace
+		index := int32(i)
+		svcc.Name = getAutoMQName(controllerRole, &index)
+		_ = r.Client.Delete(ctx, svcc)
+
+		sts := &appsv1.StatefulSet{}
+		sts.Namespace = obj.Namespace
+		sts.Name = getAutoMQName(controllerRole, &index)
+		_ = r.Client.Delete(ctx, sts)
+
+		pvc := &v1.PersistentVolumeClaim{}
+		pvc.Namespace = obj.Namespace
+		pvc.Name = getAutoMQName(controllerRole, &index)
+		_ = r.Client.Delete(ctx, pvc)
+	}
+	return nil
+}
+
 func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
 	conditionType := "SyncControllerScale"
 	currentReplicas := obj.Status.ControllerReplicas
@@ -52,6 +73,10 @@ func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav
 			svc.Namespace = obj.Namespace
 			svc.Name = getAutoMQName(controllerRole, &i)
 			_ = r.Client.Delete(ctx, svc)
+			pvc := &v1.PersistentVolumeClaim{}
+			pvc.Namespace = obj.Namespace
+			pvc.Name = getAutoMQName(controllerRole, &i)
+			_ = r.Client.Delete(ctx, pvc)
 		}
 	}
 	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -271,6 +296,17 @@ func (r *AutoMQReconciler) syncControllerSTS(ctx context.Context, obj *infrav1be
 							ReadOnly:  false,
 						},
 					},
+					Lifecycle: &v1.Lifecycle{
+						PreStop: &v1.LifecycleHandler{
+							Exec: &v1.ExecAction{
+								Command: []string{
+									"bash",
+									"-c",
+									"/opt/kafka/kafka/bin/kafka-server-stop.sh",
+								},
+							},
+						},
+					},
 					Command: []string{
 						"/bin/bash",
 						"-c",
@@ -309,8 +345,8 @@ func (r *AutoMQReconciler) syncControllerSTS(ctx context.Context, obj *infrav1be
 
 			if obj.Spec.Metrics.Enable {
 				sts.Spec.Template.Spec.Containers[0].Env = append(sts.Spec.Template.Spec.Containers[0].Env, v1.EnvVar{
-					Name:  "KAFKA_S3_TELEMETRY_METRICS_EXPORTER_URI",
-					Value: "prometheus://?host=127.0.0.1&port=9090",
+					Name:  "KAFKA_CFG_S3_TELEMETRY_METRICS_EXPORTER_URI",
+					Value: "prometheus://?host=0.0.0.0&port=9090",
 				})
 				sts.Spec.Template.Annotations["prometheus.io/scrape"] = "true"
 				sts.Spec.Template.Annotations["prometheus.io/port"] = "9090"
