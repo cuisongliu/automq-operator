@@ -17,10 +17,11 @@ limitations under the License.
 package controller
 
 import (
+	"strings"
+
 	"github.com/cuisongliu/automq-operator/defaults"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"strings"
 )
 
 func sysctlContainer() v1.Container {

@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
