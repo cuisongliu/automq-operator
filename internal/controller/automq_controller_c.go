@@ -19,6 +19,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"github.com/cuisongliu/automq-operator/defaults"
@@ -30,8 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -298,16 +299,22 @@ func (r *AutoMQReconciler) syncControllerSTS(ctx context.Context, obj *infrav1be
 					ImagePullPolicy: v1.PullIfNotPresent,
 				},
 			}
+			hash, ok := ctx.Value(ctxKey("hash-configmap")).(string)
+			if !ok {
+				hash = ""
+			}
+			sts.Spec.Template.Annotations = map[string]string{
+				"configmap/script-hash": hash,
+			}
+
 			if obj.Spec.Metrics.Enable {
 				sts.Spec.Template.Spec.Containers[0].Env = append(sts.Spec.Template.Spec.Containers[0].Env, v1.EnvVar{
 					Name:  "KAFKA_S3_TELEMETRY_METRICS_EXPORTER_URI",
 					Value: "prometheus://?host=127.0.0.1&port=9090",
 				})
-				sts.Spec.Template.Annotations = map[string]string{
-					"prometheus.io/path":   "/metrics",
-					"prometheus.io/port":   "9090",
-					"prometheus.io/scrape": "true",
-				}
+				sts.Spec.Template.Annotations["prometheus.io/scrape"] = "true"
+				sts.Spec.Template.Annotations["prometheus.io/port"] = "9090"
+				sts.Spec.Template.Annotations["prometheus.io/path"] = "/metrics"
 			}
 			if r.MountTZ {
 				sts.Spec.Template.Spec.Volumes = append(sts.Spec.Template.Spec.Volumes, v1.Volume{

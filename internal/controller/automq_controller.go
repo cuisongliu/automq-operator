@@ -20,10 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"github.com/cuisongliu/automq-operator/defaults"
 	"github.com/cuisongliu/automq-operator/internal/pkg/storage"
 	"github.com/labring/operator-sdk/controller"
+	"github.com/labring/operator-sdk/hash"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"time"
 )
 
 // AutoMQReconciler reconciles a AutoMQ object
@@ -48,6 +50,8 @@ type AutoMQReconciler struct {
 	Finalizer string
 	MountTZ   bool
 }
+
+type ctxKey string
 
 // finalizeSetting will perform the required operations before delete the CR.
 func (r *AutoMQReconciler) doFinalizerOperationsForSetting(ctx context.Context, automq *infrav1beta1.AutoMQ) error {
@@ -229,6 +233,7 @@ func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta
 		})
 		return ctx
 	}
+	ctx = context.WithValue(ctx, ctxKey("hash-configmap"), hash.Hash(data))
 	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		var change controllerutil.OperationResult
 		var e error
