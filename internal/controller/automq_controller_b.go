@@ -64,7 +64,7 @@ func (r *AutoMQReconciler) cleanBroker(ctx context.Context, obj *infrav1beta1.Au
 	return nil
 }
 
-func (r *AutoMQReconciler) syncBrokerScale(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) syncBrokerScale(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncBrokerScale"
 	currentReplicas := obj.Status.BrokerReplicas
 	if currentReplicas > obj.Spec.Broker.Replicas {
@@ -90,10 +90,10 @@ func (r *AutoMQReconciler) syncBrokerScale(ctx context.Context, obj *infrav1beta
 		Reason:             "BrokerScaleReconciling",
 		Message:            fmt.Sprintf("Broker scale for the custom resource (%s) has been reconciled", obj.Name),
 	})
-	return ctx
+	return true
 }
 
-func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncBrokerReady"
 
 	// 1. sync pvc
@@ -110,7 +110,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 				Reason:             "BrokerPVCReconciling",
 				Message:            fmt.Sprintf("Failed to create pvc for the custom resource (%s): (%s)", obj.Name, err),
 			})
-			return ctx
+			return true
 		}
 		if err := r.syncBrokerService(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -120,7 +120,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 				Reason:             "BrokerServiceReconciling",
 				Message:            fmt.Sprintf("Failed to create service for the custom resource (%s): (%s)", obj.Name, err),
 			})
-			return ctx
+			return true
 		}
 		if err := r.syncBrokerDeploy(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -130,7 +130,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 				Reason:             "BrokerSTSReconciling",
 				Message:            fmt.Sprintf("Failed to create deploy for the custom resource (%s): (%s)", obj.Name, err),
 			})
-			return ctx
+			return true
 		}
 	}
 	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -140,7 +140,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 		Reason:             "BrokerReconciling",
 		Message:            fmt.Sprintf("Broker resource for the custom resource (%s) has been created or update", obj.Name),
 	})
-	return ctx
+	return true
 }
 
 func (r *AutoMQReconciler) syncBrokerPVC(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
@@ -441,7 +441,7 @@ func (r *AutoMQReconciler) syncBrokerService(ctx context.Context, obj *infrav1be
 	return nil
 }
 
-func (r *AutoMQReconciler) syncKafkaBootstrapService(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) syncKafkaBootstrapService(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	log := log.FromContext(ctx)
 	conditionType := "SyncBootstrapServiceReady"
 
@@ -479,6 +479,14 @@ func (r *AutoMQReconciler) syncKafkaBootstrapService(ctx context.Context, obj *i
 			Reason:             "BootstrapServiceReconciling",
 			Message:            fmt.Sprintf("Failed to create bootstrap service for the custom resource (%s): (%s)", obj.Name, err),
 		})
+		return true
 	}
-	return nil
+	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+		Type:               conditionType,
+		Status:             metav1.ConditionTrue,
+		ObservedGeneration: obj.Generation,
+		Reason:             "BootstrapServiceReconciling",
+		Message:            fmt.Sprintf("Bootstrap service for the custom resource (%s) has been created", obj.Name),
+	})
+	return true
 }
