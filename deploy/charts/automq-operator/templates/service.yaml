@@ -16,4 +16,18 @@ spec:
     {{- include "automq-operator.selectorLabels" . | nindent 4 }}
 {{- end }}
 ---
-
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "automq-operator.fullname" . }}-apis
+  labels:
+    {{- include "automq-operator.labels" . | nindent 4 }}
+    app: k8s-api
+spec:
+  ports:
+    - name: apis
+      port: 9090
+      protocol: TCP
+      targetPort: apis
+  selector:
+    {{- include "automq-operator.selectorLabels" . | nindent 4 }}

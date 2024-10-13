@@ -157,6 +157,8 @@ type AutoMQSpec struct {
 	ClusterID string `json:"clusterID,omitempty"`
 	// Image is the image of the AutoMQ
 	Image string `json:"image,omitempty"`
+	// NodePort is the node port of the AutoMQ
+	NodePort int32 `json:"nodePort,omitempty"`
 	// Metrics is the metrics configuration for the AutoMQ
 	Metrics MetricsSpec `json:"metrics,omitempty"`
 	// Controller is the controller configuration for the AutoMQ

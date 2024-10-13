@@ -186,15 +186,26 @@ kafka_monitor_ip() {
 
     # get private ip first
     local_private_ip="0.0.0.0"
-    advertised_ip="${local_private_ip}"
+    advertised_ip_port="${local_private_ip}:9092"
+    if [[ -n "${OPERATOR_APIS_ADDR}" ]]; then
+        node_ip=$(curl -f -s "${OPERATOR_APIS_ADDR}:/api/v1/nodes/${NODE_NAME}")
+        if [[ $? -eq 0 && -n "$node_ip" ]]; then
+            echo "kafka_monitor_ip: node_ip=${node_ip}"
+            advertised_ip_port="${node_ip}:${NODEPORT_DEFAULT_PORT}"
+        else
+            echo "Failed to retrieve node_ip from ${OPERATOR_APIS_ADDR}"
+            exit 1
+        fi
+    fi
+
 
     # change ip settings for this node
     if [[ "${process_role}" == "server" ]]; then
         setup_value "listeners" "PLAINTEXT://${local_private_ip}:9092,CONTROLLER://${local_private_ip}:9093" "${kafka_dir}/config/kraft/${process_role}.properties"
-        setup_value "advertised.listeners" "PLAINTEXT://${advertised_ip}:9092" "${kafka_dir}/config/kraft/${process_role}.properties"
+        setup_value "advertised.listeners" "PLAINTEXT://${advertised_ip_port}" "${kafka_dir}/config/kraft/${process_role}.properties"
     elif [[ "${process_role}" == "broker" ]]; then
         setup_value "listeners" "PLAINTEXT://${local_private_ip}:9092" "${kafka_dir}/config/kraft/${process_role}.properties"
-        setup_value "advertised.listeners" "PLAINTEXT://${advertised_ip}:9092" "${kafka_dir}/config/kraft/${process_role}.properties"
+        setup_value "advertised.listeners" "PLAINTEXT://${advertised_ip_port}" "${kafka_dir}/config/kraft/${process_role}.properties"
     elif [[ "${process_role}" == "controller" ]]; then
         setup_value "listeners" "CONTROLLER://${local_private_ip}:9093" "${kafka_dir}/config/kraft/${process_role}.properties"
     else

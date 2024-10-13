@@ -62,7 +62,13 @@ func (r *AutoMQReconciler) doFinalizerOperationsForSetting(ctx context.Context, 
 }
 
 func (r *AutoMQReconciler) cleanup(ctx context.Context, automq *infrav1beta1.AutoMQ) error {
-	err := r.cleanController(ctx, automq)
+	err := r.cleanBroker(ctx, automq)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	err = r.cleanController(ctx, automq)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -161,6 +167,9 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		r.scriptConfigmap,
 		r.syncControllersScale,
 		r.syncControllers,
+		r.syncBrokerScale,
+		r.syncBrokers,
+		r.syncKafkaBootstrapService,
 	}
 
 	for _, fn := range pipelines {

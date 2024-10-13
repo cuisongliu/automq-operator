@@ -597,6 +597,10 @@ spec:
                 required:
                 - enable
                 type: object
+              nodePort:
+                description: NodePort is the node port of the AutoMQ
+                format: int32
+                type: integer
               s3:
                 description: S3 is the S3 configuration for the AutoMQ
                 properties:
