@@ -188,7 +188,7 @@ kafka_monitor_ip() {
     local_private_ip="0.0.0.0"
     advertised_ip_port="${local_private_ip}:9092"
     if [[ -n "${OPERATOR_APIS_ADDR}" ]]; then
-        node_ip=$(curl -f -s "${OPERATOR_APIS_ADDR}:/api/v1/nodes/${NODE_NAME}")
+        node_ip=$(curl -f -s "${OPERATOR_APIS_ADDR}/api/v1/nodes/${NODE_NAME}")
         if [[ $? -eq 0 && -n "$node_ip" ]]; then
             echo "kafka_monitor_ip: node_ip=${node_ip}"
             advertised_ip_port="${node_ip}:${NODEPORT_DEFAULT_PORT}"
