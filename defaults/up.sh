@@ -185,10 +185,7 @@ kafka_monitor_ip() {
     [[ -n "${process_role}" ]] || die "kafka_down: failed to get node role"
 
     # get private ip first
-    local_private_ip=$(hostname -I | awk '{print $1}')
-    if [[ "x${local_private_ip}" == "x" || "x${local_private_ip}" == "x127.0.0.1" ]]; then
-        die "kafka_start_up: failed to find the local private IP address."
-    fi
+    local_private_ip="0.0.0.0"
     advertised_ip="${local_private_ip}"
 
     # change ip settings for this node
