@@ -42,7 +42,7 @@ spec:
           - "-default-qps={{.Values.args.qps}}"
           - "-max-retry-delay={{.Values.args.maxDelay}}"
           - "-min-retry-delay={{.Values.args.minDelay}}"
-          - "-mount-tz=={{.Values.args.mountTZ}}"
+          - "-mount-tz={{.Values.args.mountTZ}}"
           - "-zap-devel=false"
           - "-zap-encoder=console"
           env:

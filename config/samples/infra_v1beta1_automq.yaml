@@ -10,8 +10,7 @@ spec:
     secretAccessKey: minio123
     bucket: automq
     enablePathStyle: true
-  broker:
-    replicas: 1
+  nodePort: 32009
   controller:
     replicas: 3
     jvmOptions:
