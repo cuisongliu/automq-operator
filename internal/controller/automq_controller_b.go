@@ -261,7 +261,7 @@ func (r *AutoMQReconciler) syncBrokerDeploy(ctx context.Context, obj *infrav1bet
 		"--process.roles",
 		"broker",
 		"--node.id",
-		fmt.Sprintf("%d", index),
+		fmt.Sprintf("%d", index+10),
 		"--cluster.id",
 		obj.Spec.ClusterID,
 		"--controller.quorum.voters",
