@@ -19,7 +19,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
@@ -35,46 +40,46 @@ import (
 )
 
 const (
-	controllerRole = "controller"
+	brokerRole = "broker"
 )
 
-func (r *AutoMQReconciler) cleanController(ctx context.Context, obj *infrav1beta1.AutoMQ) error {
-	for i := 0; i < int(obj.Status.ControllerReplicas); i++ {
+func (r *AutoMQReconciler) cleanBroker(ctx context.Context, obj *infrav1beta1.AutoMQ) error {
+	for i := 0; i < int(obj.Status.BrokerReplicas); i++ {
 		svcc := &v1.Service{}
 		svcc.Namespace = obj.Namespace
 		index := int32(i)
-		svcc.Name = getAutoMQName(controllerRole, &index)
+		svcc.Name = getAutoMQName(brokerRole, &index)
 		_ = r.Client.Delete(ctx, svcc)
 
-		deploy := &appsv1.Deployment{}
+		deploy := &appsv1.StatefulSet{}
 		deploy.Namespace = obj.Namespace
-		deploy.Name = getAutoMQName(controllerRole, &index)
+		deploy.Name = getAutoMQName(brokerRole, &index)
 		_ = r.Client.Delete(ctx, deploy)
 
 		pvc := &v1.PersistentVolumeClaim{}
 		pvc.Namespace = obj.Namespace
-		pvc.Name = getAutoMQName(controllerRole, &index)
+		pvc.Name = getAutoMQName(brokerRole, &index)
 		_ = r.Client.Delete(ctx, pvc)
 	}
 	return nil
 }
 
-func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
-	conditionType := "SyncControllerScale"
-	currentReplicas := obj.Status.ControllerReplicas
-	if currentReplicas > obj.Spec.Controller.Replicas {
-		for i := obj.Spec.Controller.Replicas; i < currentReplicas; i++ {
-			deploy := &appsv1.Deployment{}
+func (r *AutoMQReconciler) syncBrokerScale(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+	conditionType := "SyncBrokerScale"
+	currentReplicas := obj.Status.BrokerReplicas
+	if currentReplicas > obj.Spec.Broker.Replicas {
+		for i := obj.Spec.Broker.Replicas; i < currentReplicas; i++ {
+			deploy := &appsv1.StatefulSet{}
 			deploy.Namespace = obj.Namespace
-			deploy.Name = getAutoMQName(controllerRole, &i)
+			deploy.Name = getAutoMQName(brokerRole, &i)
 			_ = r.Client.Delete(ctx, deploy)
 			svc := &v1.Service{}
 			svc.Namespace = obj.Namespace
-			svc.Name = getAutoMQName(controllerRole, &i)
+			svc.Name = getAutoMQName(brokerRole, &i)
 			_ = r.Client.Delete(ctx, svc)
 			pvc := &v1.PersistentVolumeClaim{}
 			pvc.Namespace = obj.Namespace
-			pvc.Name = getAutoMQName(controllerRole, &i)
+			pvc.Name = getAutoMQName(brokerRole, &i)
 			_ = r.Client.Delete(ctx, pvc)
 		}
 	}
@@ -82,48 +87,48 @@ func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav
 		Type:               conditionType,
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: obj.Generation,
-		Reason:             "ControllerScaleReconciling",
-		Message:            fmt.Sprintf("Controller scale for the custom resource (%s) has been reconciled", obj.Name),
+		Reason:             "BrokerScaleReconciling",
+		Message:            fmt.Sprintf("Broker scale for the custom resource (%s) has been reconciled", obj.Name),
 	})
 	return ctx
 }
 
-func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
-	conditionType := "SyncControllerReady"
+func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+	conditionType := "SyncBrokerReady"
 
 	// 1. sync pvc
 	// 2. sync deploy
 	// 3. sync svc
 	// 3. sync monitor
 
-	for i := 0; i < int(obj.Spec.Controller.Replicas); i++ {
-		if err := r.syncControllerPVC(ctx, obj, int32(i)); err != nil {
+	for i := 0; i < int(obj.Spec.Broker.Replicas); i++ {
+		if err := r.syncBrokerPVC(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 				Type:               conditionType,
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: obj.Generation,
-				Reason:             "ControllerPVCReconciling",
+				Reason:             "BrokerPVCReconciling",
 				Message:            fmt.Sprintf("Failed to create pvc for the custom resource (%s): (%s)", obj.Name, err),
 			})
 			return ctx
 		}
-		if err := r.syncControllerDeploy(ctx, obj, int32(i)); err != nil {
+		if err := r.syncBrokerService(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 				Type:               conditionType,
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: obj.Generation,
-				Reason:             "ControllerSTSReconciling",
-				Message:            fmt.Sprintf("Failed to create deploy for the custom resource (%s): (%s)", obj.Name, err),
+				Reason:             "BrokerServiceReconciling",
+				Message:            fmt.Sprintf("Failed to create service for the custom resource (%s): (%s)", obj.Name, err),
 			})
 			return ctx
 		}
-		if err := r.syncControllerService(ctx, obj, int32(i)); err != nil {
+		if err := r.syncBrokerDeploy(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 				Type:               conditionType,
 				Status:             metav1.ConditionFalse,
 				ObservedGeneration: obj.Generation,
-				Reason:             "ControllerServiceReconciling",
-				Message:            fmt.Sprintf("Failed to create service for the custom resource (%s): (%s)", obj.Name, err),
+				Reason:             "BrokerSTSReconciling",
+				Message:            fmt.Sprintf("Failed to create deploy for the custom resource (%s): (%s)", obj.Name, err),
 			})
 			return ctx
 		}
@@ -132,18 +137,18 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 		Type:               conditionType,
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: obj.Generation,
-		Reason:             "ControllerReconciling",
-		Message:            fmt.Sprintf("Controller resource for the custom resource (%s) has been created or update", obj.Name),
+		Reason:             "BrokerReconciling",
+		Message:            fmt.Sprintf("Broker resource for the custom resource (%s) has been created or update", obj.Name),
 	})
 	return ctx
 }
 
-func (r *AutoMQReconciler) syncControllerPVC(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
+func (r *AutoMQReconciler) syncBrokerPVC(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
 	storage, _ := resource.ParseQuantity("100Gi")
 	pvc := &v1.PersistentVolumeClaim{}
 	pvc.Namespace = obj.Namespace
-	pvc.Name = getAutoMQName(controllerRole, &index)
-	labelMap := getAutoMQLabelMap(obj.GetName(), controllerRole)
+	pvc.Name = getAutoMQName(brokerRole, &index)
+	labelMap := getAutoMQLabelMap(obj.GetName(), brokerRole)
 	labelMap[autoMQIndexKey] = fmt.Sprintf("%d", index)
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, func() error {
@@ -154,8 +159,8 @@ func (r *AutoMQReconciler) syncControllerPVC(ctx context.Context, obj *infrav1be
 					v1.ResourceStorage: storage,
 				},
 			}
-			if obj.Spec.Controller.StorageClass != "" {
-				pvc.Spec.StorageClassName = &obj.Spec.Controller.StorageClass
+			if obj.Spec.Broker.StorageClass != "" {
+				pvc.Spec.StorageClassName = &obj.Spec.Broker.StorageClass
 			}
 			return nil
 		})
@@ -166,24 +171,23 @@ func (r *AutoMQReconciler) syncControllerPVC(ctx context.Context, obj *infrav1be
 	return nil
 }
 
-func (r *AutoMQReconciler) controllerVoters(obj *infrav1beta1.AutoMQ) []string {
-	var voters []string
-	for i := 0; i < int(obj.Spec.Controller.Replicas); i++ {
-		index := int32(i)
-		voters = append(voters, fmt.Sprintf("%d@%s.%s.svc:%d", i, getAutoMQName(controllerRole, &index), obj.Namespace, 9093))
-	}
-	return voters
-}
-
-func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
+func (r *AutoMQReconciler) syncBrokerDeploy(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
 	deploy := &appsv1.Deployment{}
 	deploy.Namespace = obj.Namespace
-	deploy.Name = getAutoMQName(controllerRole, &index)
-	labelMap := getAutoMQLabelMap(obj.GetName(), controllerRole)
+	deploy.Name = getAutoMQName(brokerRole, &index)
+	labelMap := getAutoMQLabelMap(obj.GetName(), brokerRole)
 	labelMap[autoMQIndexKey] = fmt.Sprintf("%d", index)
 	deploy.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: labelMap,
 	}
+	svc := &v1.Service{}
+	svc.Namespace = obj.Namespace
+	svc.Name = getAutoMQName(brokerRole, &index)
+
+	if err := r.Client.Get(ctx, client.ObjectKeyFromObject(svc), svc); err != nil {
+		return err
+	}
+
 	sysctl := sysctlContainer()
 	envs := []v1.EnvVar{
 		{
@@ -199,6 +203,14 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 			ValueFrom: &v1.EnvVarSource{
 				FieldRef: &v1.ObjectFieldSelector{
 					FieldPath: "metadata.name",
+				},
+			},
+		},
+		{
+			Name: "NODE_NAME",
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: "spec.nodeName",
 				},
 			},
 		},
@@ -220,14 +232,34 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 		},
 		{
 			Name:  "KAFKA_HEAP_OPTS",
-			Value: strings.Join(obj.Spec.Controller.JVMOptions, " "),
+			Value: strings.Join(obj.Spec.Broker.JVMOptions, " "),
+		},
+		{
+			Name:  "KAFKA_CFG_AUTOBALANCER_REPORTER_NETWORK_IN_CAPACITY",
+			Value: "5120",
+		},
+		{
+			Name:  "KAFKA_CFG_AUTOBALANCER_REPORTER_NETWORK_OUT_CAPACITY",
+			Value: "5120",
+		},
+		{
+			Name:  "KAFKA_CFG_AUTOBALANCER_REPORTER_METRICS_REPORTING_INTERVAL_MS",
+			Value: "5000",
+		},
+		{
+			Name:  "NODEPORT_DEFAULT_PORT",
+			Value: strconv.Itoa(int(svc.Spec.Ports[0].NodePort)),
+		},
+		{
+			Name:  "OPERATOR_APIS_ADDR",
+			Value: fmt.Sprintf("http://%s.%s.svc:%d", os.Getenv("OPERATOR_APIS_SVC_NAME"), os.Getenv("NAMESPACE_NAME"), 9090),
 		},
 	}
 	cmds := []string{
 		"/opt/kafka/scripts/mq-start.sh",
 		"up",
 		"--process.roles",
-		"controller",
+		"broker",
 		"--node.id",
 		fmt.Sprintf("%d", index),
 		"--cluster.id",
@@ -245,7 +277,7 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 	}
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, deploy, func() error {
-			deploy.Labels = getAutoMQLabelMap(obj.GetName(), controllerRole)
+			deploy.Labels = getAutoMQLabelMap(obj.GetName(), brokerRole)
 			deploy.Spec.Strategy = appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			}
@@ -255,7 +287,7 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 			deploy.Spec.Template.Spec.InitContainers = []v1.Container{
 				sysctl,
 			}
-			deploy.Spec.Template.Spec.Affinity = obj.Spec.Controller.Affinity.ToK8sAffinity()
+			deploy.Spec.Template.Spec.Affinity = obj.Spec.Broker.Affinity.ToK8sAffinity()
 			deploy.Spec.Template.Spec.Volumes = []v1.Volume{
 				{
 					Name: "script",
@@ -279,7 +311,7 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 			}
 			deploy.Spec.Template.Spec.Containers = []v1.Container{
 				{
-					Name:  controllerRole,
+					Name:  brokerRole,
 					Image: defaults.DefaultImageName,
 					Env:   envs,
 					VolumeMounts: []v1.VolumeMount{
@@ -313,7 +345,7 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 					LivenessProbe: &v1.Probe{
 						ProbeHandler: v1.ProbeHandler{
 							TCPSocket: &v1.TCPSocketAction{
-								Port: intstr.FromString(controllerRole),
+								Port: intstr.FromString(brokerRole),
 							},
 						},
 						InitialDelaySeconds:           20,
@@ -325,8 +357,8 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 					},
 					Ports: []v1.ContainerPort{
 						{
-							Name:          controllerRole,
-							ContainerPort: 9093,
+							Name:          brokerRole,
+							ContainerPort: 9092,
 							Protocol:      v1.ProtocolTCP,
 						},
 					},
@@ -364,14 +396,14 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 					MountPath: "/etc/localtime",
 				})
 			}
-			if obj.Spec.Controller.Resource.Requests != nil {
-				deploy.Spec.Template.Spec.Containers[0].Resources.Requests = obj.Spec.Controller.Resource.Requests
+			if obj.Spec.Broker.Resource.Requests != nil {
+				deploy.Spec.Template.Spec.Containers[0].Resources.Requests = obj.Spec.Broker.Resource.Requests
 			}
-			if obj.Spec.Controller.Resource.Limits != nil {
-				deploy.Spec.Template.Spec.Containers[0].Resources.Limits = obj.Spec.Controller.Resource.Limits
+			if obj.Spec.Broker.Resource.Limits != nil {
+				deploy.Spec.Template.Spec.Containers[0].Resources.Limits = obj.Spec.Broker.Resource.Limits
 			}
-			if obj.Spec.Controller.Envs != nil && len(obj.Spec.Controller.Envs) > 0 {
-				deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, obj.Spec.Controller.Envs...)
+			if obj.Spec.Broker.Envs != nil && len(obj.Spec.Broker.Envs) > 0 {
+				deploy.Spec.Template.Spec.Containers[0].Env = append(deploy.Spec.Template.Spec.Containers[0].Env, obj.Spec.Broker.Envs...)
 			}
 			return nil
 		})
@@ -381,11 +413,11 @@ func (r *AutoMQReconciler) syncControllerDeploy(ctx context.Context, obj *infrav
 	}
 	return nil
 }
-func (r *AutoMQReconciler) syncControllerService(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
+func (r *AutoMQReconciler) syncBrokerService(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {
 	svc := &v1.Service{}
 	svc.Namespace = obj.Namespace
-	svc.Name = getAutoMQName(controllerRole, &index)
-	labelMap := getAutoMQLabelMap(obj.GetName(), controllerRole)
+	svc.Name = getAutoMQName(brokerRole, &index)
+	labelMap := getAutoMQLabelMap(obj.GetName(), brokerRole)
 	labelMap[autoMQIndexKey] = fmt.Sprintf("%d", index)
 	svc.Spec.Selector = labelMap
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -393,18 +425,60 @@ func (r *AutoMQReconciler) syncControllerService(ctx context.Context, obj *infra
 			svc.Labels = labelMap
 			svc.Spec.Ports = []v1.ServicePort{
 				{
-					Name:       controllerRole,
-					Port:       9093,
-					TargetPort: intstr.FromString(controllerRole),
+					Name:       brokerRole,
+					Port:       9092,
+					TargetPort: intstr.FromString(brokerRole),
 					Protocol:   v1.ProtocolTCP,
 				},
 			}
-			svc.Spec.Type = v1.ServiceTypeClusterIP
+			svc.Spec.Type = v1.ServiceTypeNodePort
 			return nil
 		})
 		return err
 	}); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (r *AutoMQReconciler) syncKafkaBootstrapService(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+	log := log.FromContext(ctx)
+	conditionType := "SyncBootstrapServiceReady"
+
+	svc := &v1.Service{}
+	svc.Namespace = obj.Namespace
+	svc.Name = getAutoMQName(brokerRole+"-bootstrap", nil)
+	labelMap := getAutoMQLabelMap(obj.GetName(), brokerRole)
+	svc.Spec.Selector = labelMap
+	var change controllerutil.OperationResult
+	var e error
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if change, e = controllerutil.CreateOrUpdate(ctx, r.Client, svc, func() error {
+			svc.Labels = labelMap
+			svc.Spec.Ports = []v1.ServicePort{
+				{
+					Name:       brokerRole,
+					Port:       9092,
+					TargetPort: intstr.FromString(brokerRole),
+					Protocol:   v1.ProtocolTCP,
+					NodePort:   obj.Spec.NodePort,
+				},
+			}
+			svc.Spec.Type = v1.ServiceTypeNodePort
+			return nil
+		}); e != nil {
+			return e
+		}
+		log.V(1).Info("create or update  bootstrap service  by AutoMQ", "OperationResult", change)
+		return nil
+	}); err != nil {
+		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
+			Type:               conditionType,
+			Status:             metav1.ConditionFalse,
+			ObservedGeneration: obj.Generation,
+			Reason:             "BootstrapServiceReconciling",
+			Message:            fmt.Sprintf("Failed to create bootstrap service for the custom resource (%s): (%s)", obj.Name, err),
+		})
 	}
 	return nil
 }

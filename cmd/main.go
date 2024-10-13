@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	v1 "k8s.io/api/core/v1"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -26,6 +28,7 @@ import (
 
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	"github.com/cuisongliu/automq-operator/internal/controller"
+	"github.com/gin-gonic/gin"
 	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -111,7 +114,48 @@ func main() {
 			os.Exit(1)
 		}
 	}
+
+	if os.Getenv("OPERATOR_APIS_SVC_NAME") == "" {
+		setupLog.Error(err, "OPERATOR_APIS_SVC_NAME is empty")
+		os.Exit(1)
+	}
+
+	if os.Getenv("NAMESPACE_NAME") == "" {
+		_ = os.Setenv("NAMESPACE_NAME", "default")
+	}
+
 	//+kubebuilder:scaffold:builder
+
+	ctx := ctrl.SetupSignalHandler()
+
+	go func() {
+		if mgr.GetCache().WaitForCacheSync(ctx) {
+			setupLog.Info("cache sync success")
+			router := gin.Default()
+			router.GET("/api/v1/nodes/:name", func(c *gin.Context) {
+				name := c.Param("name")
+				node := &v1.Node{}
+				node.Name = name
+				if noe := mgr.GetClient().Get(ctx, client.ObjectKeyFromObject(node), node); noe != nil {
+					c.JSON(500, gin.H{"message": noe.Error()})
+					return
+				}
+				nodeIP := ""
+				for _, addr := range node.Status.Addresses {
+					if addr.Type == v1.NodeInternalIP {
+						nodeIP = addr.Address
+						break
+					}
+				}
+				if nodeIP == "" {
+					c.JSON(500, gin.H{"message": "node ip not found"})
+					return
+				}
+				c.String(200, nodeIP)
+			})
+			router.Run(":9090")
+		}
+	}()
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -123,7 +167,7 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
