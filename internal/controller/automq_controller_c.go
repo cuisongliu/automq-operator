@@ -59,7 +59,7 @@ func (r *AutoMQReconciler) cleanController(ctx context.Context, obj *infrav1beta
 	return nil
 }
 
-func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncControllerScale"
 	currentReplicas := obj.Status.ControllerReplicas
 	if currentReplicas > obj.Spec.Controller.Replicas {
@@ -85,10 +85,10 @@ func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav
 		Reason:             "ControllerScaleReconciling",
 		Message:            fmt.Sprintf("Controller scale for the custom resource (%s) has been reconciled", obj.Name),
 	})
-	return ctx
+	return true
 }
 
-func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncControllerReady"
 
 	// 1. sync pvc
@@ -105,7 +105,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 				Reason:             "ControllerPVCReconciling",
 				Message:            fmt.Sprintf("Failed to create pvc for the custom resource (%s): (%s)", obj.Name, err),
 			})
-			return ctx
+			return true
 		}
 		if err := r.syncControllerDeploy(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -115,7 +115,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 				Reason:             "ControllerSTSReconciling",
 				Message:            fmt.Sprintf("Failed to create deploy for the custom resource (%s): (%s)", obj.Name, err),
 			})
-			return ctx
+			return true
 		}
 		if err := r.syncControllerService(ctx, obj, int32(i)); err != nil {
 			meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -125,7 +125,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 				Reason:             "ControllerServiceReconciling",
 				Message:            fmt.Sprintf("Failed to create service for the custom resource (%s): (%s)", obj.Name, err),
 			})
-			return ctx
+			return true
 		}
 	}
 	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -135,7 +135,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 		Reason:             "ControllerReconciling",
 		Message:            fmt.Sprintf("Controller resource for the custom resource (%s) has been created or update", obj.Name),
 	})
-	return ctx
+	return true
 }
 
 func (r *AutoMQReconciler) syncControllerPVC(ctx context.Context, obj *infrav1beta1.AutoMQ, index int32) error {

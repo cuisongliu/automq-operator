@@ -162,7 +162,7 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		return ctrl.Result{}, errors.New("obj convert automq is error")
 	}
 	automq.Status.ControllerAddresses = r.controllerVoters(automq)
-	pipelines := []func(ctx context.Context, mq *infrav1beta1.AutoMQ) context.Context{
+	pipelines := []func(ctx context.Context, mq *infrav1beta1.AutoMQ) bool{
 		r.s3Service,
 		r.scriptConfigmap,
 		r.syncControllersScale,
@@ -171,10 +171,10 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		r.syncBrokers,
 		r.syncKafkaBootstrapService,
 	}
-
+	var ifRunning bool
 	for _, fn := range pipelines {
-		ctx = fn(ctx, automq)
-		if o, found := ctx.Value(ctxKey("goto")).(bool); found && o {
+		ifRunning = fn(ctx, automq)
+		if !ifRunning {
 			break
 		}
 	}
@@ -219,7 +219,7 @@ func (r *AutoMQReconciler) syncStatus(ctx context.Context, automq *infrav1beta1.
 	return nil
 }
 
-func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncS3ServiceReady"
 	sg, err := storage.NewBucket(storage.Config{
 		Type:     "s3",
@@ -228,11 +228,6 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 		Region:   obj.Spec.S3.Region,
 		Endpoint: obj.Spec.S3.Endpoint,
 	})
-	setGoto := func() {
-		if err != nil {
-			ctx = context.WithValue(ctx, ctxKey("goto"), true)
-		}
-	}
 	if err != nil {
 		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 			Type:               conditionType,
@@ -241,8 +236,7 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 			Reason:             "AwsS3ReconcilingInit",
 			Message:            fmt.Sprintf("Failed to create S3 Bucket interface for the custom resource (%s): (%s)", obj.Name, err),
 		})
-		setGoto()
-		return ctx
+		return false
 	}
 	err = sg.MkBucket(ctx, obj.Spec.S3.Bucket)
 	if err != nil && !strings.Contains(err.Error(), "BucketAlready") {
@@ -253,8 +247,7 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 			Reason:             "AwsS3ReconcilingBucket",
 			Message:            fmt.Sprintf("Failed to create S3 Bucket interface for the custom resource (%s): (%s)", obj.Name, err),
 		})
-		setGoto()
-		return ctx
+		return false
 	}
 	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 		Type:               conditionType,
@@ -263,10 +256,10 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 		Reason:             "AwsS3Reconciling",
 		Message:            fmt.Sprintf("S3 Bucket interface for the custom resource (%s) has been created", obj.Name),
 	})
-	return ctx
+	return true
 }
 
-func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta1.AutoMQ) context.Context {
+func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	log := log.FromContext(ctx)
 	conditionType := "SyncConfigmapReady"
 	data, err := defaults.Asset("defaults/up.sh")
@@ -278,7 +271,7 @@ func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta
 			Reason:             "ConfigmapReconcilingInit",
 			Message:            fmt.Sprintf("Failed to create script configmap for the custom resource (%s): (%s)", obj.Name, err),
 		})
-		return ctx
+		return false
 	}
 	ctx = context.WithValue(ctx, ctxKey("hash-configmap"), hash.Hash(data))
 	if err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -305,7 +298,7 @@ func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta
 			Reason:             "ConfigmapReconcilingCreate",
 			Message:            fmt.Sprintf("Failed to create script configmap for the custom resource (%s): (%s)", obj.Name, err),
 		})
-		return ctx
+		return false
 	}
 
 	meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
@@ -313,9 +306,9 @@ func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta
 		Status:             metav1.ConditionTrue,
 		ObservedGeneration: obj.Generation,
 		Reason:             "ConfigmapReconciling",
-		Message:            fmt.Sprintf("Configmap script for the custom resource (%s) has been created", obj.Name),
+		Message:            fmt.Sprintf("Script configmap for the custom resource (%s) has been created", obj.Name),
 	})
-	return ctx
+	return true
 }
 
 func getAutoMQLabelMap(name, role string) map[string]string {
