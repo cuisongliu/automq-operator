@@ -82,7 +82,7 @@ func defaultsUpSh() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "defaults/up.sh", size: 12502, mode: os.FileMode(420), modTime: time.Unix(1728839020, 0)}
+	info := bindataFileInfo{name: "defaults/up.sh", size: 12502, mode: os.FileMode(420), modTime: time.Unix(1728839086, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
