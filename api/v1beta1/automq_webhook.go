@@ -100,6 +100,9 @@ func (r *AutoMQ) ValidateUpdate(old runtime.Object) (admission.Warnings, error) 
 	if r.Spec.ClusterID != mqOld.Spec.ClusterID {
 		return nil, fmt.Errorf("field clusterID is immutable")
 	}
+	if r.Spec.Controller.Replicas != mqOld.Spec.Controller.Replicas {
+		return nil, fmt.Errorf("field controller.replicas is immutable")
+	}
 	if err := validate(r); err != nil {
 		return nil, err
 	}
