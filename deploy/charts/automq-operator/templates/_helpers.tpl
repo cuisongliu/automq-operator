@@ -81,7 +81,7 @@ IfNotPresent
 
 {{- define "automq-operator.revision" -}}
 {{- if eq (include "automq-operator.getTag" .) "latest" -}}
-{{.Release.Revision}}
+"{{.Release.Revision}}"
 {{- else -}}
 {{ include "automq-operator.getTag" .}}
 {{- end -}}
