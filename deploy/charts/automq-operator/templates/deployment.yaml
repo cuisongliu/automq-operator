@@ -13,10 +13,11 @@ spec:
       {{- include "automq-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
+        operator-revision: {{ include "automq-operator.revision" . }}
       labels:
         {{- include "automq-operator.selectorLabels" . | nindent 8 }}
     spec:
@@ -34,7 +35,7 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ include "automq-operator.pullPolicy" . }}
           args:
           - "-leader-elect={{.Values.args.leader}}"
           - "-default-burst={{.Values.args.burst}}"

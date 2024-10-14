@@ -51,7 +51,7 @@ func (r *AutoMQReconciler) cleanBroker(ctx context.Context, obj *infrav1beta1.Au
 		svcc.Name = getAutoMQName(brokerRole, &index)
 		_ = r.Client.Delete(ctx, svcc)
 
-		deploy := &appsv1.StatefulSet{}
+		deploy := &appsv1.Deployment{}
 		deploy.Namespace = obj.Namespace
 		deploy.Name = getAutoMQName(brokerRole, &index)
 		_ = r.Client.Delete(ctx, deploy)
@@ -61,6 +61,11 @@ func (r *AutoMQReconciler) cleanBroker(ctx context.Context, obj *infrav1beta1.Au
 		pvc.Name = getAutoMQName(brokerRole, &index)
 		_ = r.Client.Delete(ctx, pvc)
 	}
+
+	bsvc := &v1.Service{}
+	bsvc.Namespace = obj.Namespace
+	bsvc.Name = getAutoMQName(brokerRole+"-bootstrap", nil)
+	_ = r.Client.Delete(ctx, bsvc)
 	return nil
 }
 
@@ -261,7 +266,7 @@ func (r *AutoMQReconciler) syncBrokerDeploy(ctx context.Context, obj *infrav1bet
 		"--process.roles",
 		"broker",
 		"--node.id",
-		fmt.Sprintf("%d", index+10),
+		fmt.Sprintf("%d", index+obj.Spec.Controller.Replicas),
 		"--cluster.id",
 		obj.Spec.ClusterID,
 		"--controller.quorum.voters",
