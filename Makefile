@@ -175,3 +175,7 @@ e2e: fmt vet envtest ## Run tests.
 
 bindata:
 	go run gen/bindata/main.go
+
+.PHONY: set-image
+set-image:
+	@sed -i '/#replace_by_makefile/!b;n;c\image: ${IMG}' deploy/charts/automq-operator/values.yaml
