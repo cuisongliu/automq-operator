@@ -36,11 +36,7 @@ jobs:
 
       - name: Verify sealos
         run: |
-          wget -q https://github.com/labring/sealos/releases/download/v4.3.7/sealos_4.3.7_linux_amd64.tar.gz
-          tar -zxvf sealos_4.3.7_linux_amd64.tar.gz sealos
-          sudo chmod a+x sealos
-          sudo mv sealos /usr/bin/
-          sudo sealos version
+          curl -sfL https://raw.githubusercontent.com/labring/sealos/v5.0.0/scripts/install.sh | sh -s v5.0.0  labring/sealos
       - name: prune os
         run: |
           sudo systemctl unmask containerd
@@ -69,11 +65,7 @@ jobs:
 
       - name: Verify sealos
         run: |
-          wget -q https://github.com/labring/sealos/releases/download/v4.3.7/sealos_4.3.7_linux_amd64.tar.gz
-          tar -zxvf sealos_4.3.7_linux_amd64.tar.gz sealos
-          sudo chmod a+x sealos
-          sudo mv sealos /usr/bin/
-          sudo sealos version
+          curl -sfL https://raw.githubusercontent.com/labring/sealos/v5.0.0/scripts/install.sh | sh -s v5.0.0  labring/sealos
       - name: build
         run: |
           go run gen/version/gen.go ghcr.io/${{ github.repository_owner }}/automq-operator:latest && make info

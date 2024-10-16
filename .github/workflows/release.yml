@@ -80,3 +80,42 @@ jobs:
           gh release upload "${{ github.ref }}" artifacts/*
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  build-sealos:
+    name: build sealos images
+    runs-on: ubuntu-22.04
+    needs:
+      - release
+    steps:
+      - name: Prepare
+        id: prepare
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo ::set-output name=tag_name::${TAG}
+      - uses: actions/checkout@v4
+      - name: Verify sealos
+        run: |
+          curl -sfL https://raw.githubusercontent.com/labring/sealos/v5.0.0/scripts/install.sh | sh -s v5.0.0  labring/sealos
+      - name: build
+        run: |
+          wget -q https://github.com/cuisongliu/automq-operator/releases/download/${{ steps.prepare.outputs.tag_name }}/automq-operator-${{ steps.prepare.outputs.tag_name }}-sealos.tgz
+          mkdir -p automq-operator && tar -xzf automq-operator-${{ steps.prepare.outputs.tag_name }}-sealos.tgz -C automq-operator
+          cd automq-operator/deploy
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/automq-operator-sealos:${{ steps.prepare.outputs.tag_name }}"
+          sudo sealos build -t "${IMAGE_NAME}"-amd64 --platform linux/amd64 . && sudo rm -rf registry
+          sudo sealos build -t "${IMAGE_NAME}"-arm64 --platform linux/arm64 . && sudo rm -rf registry
+          sudo sealos login -u ${{ github.repository_owner }} -p ${{ secrets.GH_TOKEN }} --debug ghcr.io
+          bash manifest.sh ${IMAGE_NAME}
+  sync-sealos-cluster-images:
+    name: sync sealos cluster images
+    runs-on: ubuntu-22.04
+    needs:
+      - build-sealos
+    steps:
+      - name: Prepare
+        id: prepare
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo ::set-output name=tag_name::${TAG}
+      - name: build
+        run: |
+          gh issue comment ${{ vars.SEALOS_ISSUE_NUMBER }} --body "/imagebuild_apps automq-operator ${{ steps.prepare.outputs.tag_name }}" --repo ${{ vars.SEALOS_ISSUE_REPO }}
