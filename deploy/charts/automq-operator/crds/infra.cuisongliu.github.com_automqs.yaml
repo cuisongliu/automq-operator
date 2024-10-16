@@ -644,6 +644,9 @@ spec:
           status:
             description: AutoMQStatus defines the observed state of AutoMQ
             properties:
+              bootstrapInternalAddress:
+                description: BootstrapInternalAddress is the address of the bootstrap
+                type: string
               brokerReplicas:
                 default: 0
                 description: BrokerReplicas is the number of broker replicas for the
