@@ -54,11 +54,7 @@ jobs:
 
       - name: Verify sealos
         run: |
-          wget -q https://github.com/labring/sealos/releases/download/v4.3.7/sealos_4.3.7_linux_amd64.tar.gz
-          tar -zxvf sealos_4.3.7_linux_amd64.tar.gz sealos
-          sudo chmod a+x sealos
-          sudo mv sealos /usr/bin/
-          sudo sealos version
+          curl -sfL https://raw.githubusercontent.com/labring/sealos/v5.0.0/scripts/install.sh | sh -s v5.0.0  labring/sealos
       - name: build
         run: |
           go run gen/version/gen.go ghcr.io/${{ github.repository_owner }}/automq-operator:latest && make info
@@ -67,12 +63,13 @@ jobs:
           sudo sealos build -t "${IMAGE_NAME}"-amd64 --platform linux/amd64 . && sudo rm -rf registry
           sudo sealos build -t "${IMAGE_NAME}"-arm64 --platform linux/arm64 . && sudo rm -rf registry
           sudo sealos login -u ${{ github.repository_owner }} -p ${{ secrets.GH_TOKEN }} --debug ghcr.io
-          sudo sealos push "${IMAGE_NAME}"-amd64
-          sudo sealos push "${IMAGE_NAME}"-arm64
-          sudo sealos images
-          sudo sealos manifest create "${IMAGE_NAME}"
-          sudo sealos manifest add "$IMAGE_NAME" docker://"$IMAGE_NAME-amd64"
-          sudo sealos manifest add "$IMAGE_NAME" docker://"$IMAGE_NAME-arm64"
-          sudo sealos manifest push --all "$IMAGE_NAME" docker://"$IMAGE_NAME" && echo "$IMAGE_NAME push success"
-          sudo sealos images
+          bash manifest.sh ${IMAGE_NAME}
 
+
+  sync:
+    runs-on: ubuntu-20.04
+    needs: job1
+    steps:
+      - name: build
+        run: |
+          gh issue comment ${{ vars.SEALOS_ISSUE_NUMBER }} --body "/imagebuild_apps automq-operator latest" --repo ${{ vars.SEALOS_ISSUE_REPO }}
