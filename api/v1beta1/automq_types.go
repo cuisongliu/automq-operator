@@ -173,11 +173,10 @@ type AutoMQPhase string
 
 // These are the valid phases of node.
 const (
-	AutoMQPending        AutoMQPhase = "Pending"
-	AutoMQError          AutoMQPhase = "Error"
-	AutoMQReady          AutoMQPhase = "Ready"
-	AutoMQInProcess      AutoMQPhase = "InProcess"
-	AutoMQDefaultMessage string      = "success"
+	AutoMQPending   AutoMQPhase = "Pending"
+	AutoMQError     AutoMQPhase = "Error"
+	AutoMQReady     AutoMQPhase = "Ready"
+	AutoMQInProcess AutoMQPhase = "InProcess"
 )
 
 // AutoMQStatus defines the observed state of AutoMQ
