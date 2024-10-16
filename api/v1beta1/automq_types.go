@@ -197,14 +197,17 @@ type AutoMQStatus struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=0
 	ControllerReplicas int32 `json:"controllerReplicas"`
-	// ControllerAddress is the address of the controller
-	// +optional
-	ControllerAddresses []string `json:"controllerAddresses,omitempty"`
 	// BrokerReplicas is the number of broker replicas for the AutoMQ
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=0
 	BrokerReplicas int32 `json:"brokerReplicas"`
+	// ControllerAddress is the address of the controller
+	// +optional
+	ControllerAddresses []string `json:"controllerAddresses,omitempty"`
+	// BootstrapInternalAddress is the address of the bootstrap
+	// +optional
+	BootstrapInternalAddress string `json:"bootstrapInternalAddress,omitempty"`
 }
 
 //+kubebuilder:object:root=true

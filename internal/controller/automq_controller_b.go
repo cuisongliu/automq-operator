@@ -493,5 +493,6 @@ func (r *AutoMQReconciler) syncKafkaBootstrapService(ctx context.Context, obj *i
 		Reason:             "BootstrapServiceReconciling",
 		Message:            fmt.Sprintf("Bootstrap service for the custom resource (%s) has been created", obj.Name),
 	})
+	obj.Status.BootstrapInternalAddress = fmt.Sprintf("%s.%s.svc:%d", getAutoMQName(brokerRole+"-bootstrap", nil), obj.Namespace, 9092)
 	return true
 }
