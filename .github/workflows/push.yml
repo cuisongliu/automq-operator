@@ -69,6 +69,8 @@ jobs:
   sync:
     runs-on: ubuntu-20.04
     needs: job1
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: build
         run: |

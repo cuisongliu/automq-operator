@@ -117,5 +117,7 @@ jobs:
           TAG=${GITHUB_REF#refs/tags/}
           echo ::set-output name=tag_name::${TAG}
       - name: build
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh issue comment ${{ vars.SEALOS_ISSUE_NUMBER }} --body "/imagebuild_apps automq-operator ${{ steps.prepare.outputs.tag_name }}" --repo ${{ vars.SEALOS_ISSUE_REPO }}
