@@ -18,6 +18,10 @@ package controller
 
 import (
 	"context"
+	"fmt"
+
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -45,6 +49,54 @@ func (r *AutoMQReconciler) statusReconcile(ctx context.Context, obj client.Objec
 	}
 	if !status {
 		automq.Status.Phase = infrav1beta1.AutoMQError
+	} else {
+		automq.Status.Phase = infrav1beta1.AutoMQInProcess
 	}
+	if automq.Status.Phase == infrav1beta1.AutoMQInProcess {
+		cLabelMap := getAutoMQLabelMap(obj.GetName(), controllerRole)
+		bLabelMap := getAutoMQLabelMap(obj.GetName(), brokerRole)
+
+		cRunningNum, err := getPodRunningNum(ctx, r.Client, automq.Namespace, cLabelMap)
+		if err != nil {
+			return err
+		}
+		bRunningNum, err := getPodRunningNum(ctx, r.Client, automq.Namespace, bLabelMap)
+		if err != nil {
+			return err
+		}
+		automq.Status.ReadyPods = int32(cRunningNum) + int32(bRunningNum)
+		if int32(cRunningNum) == automq.Spec.Controller.Replicas && int32(bRunningNum) == automq.Spec.Broker.Replicas {
+			automq.Status.Phase = infrav1beta1.AutoMQReady
+		}
+	}
+
 	return r.syncStatus(ctx, automq)
+}
+
+func getPodRunningNum(ctx context.Context, r client.Client, namespace string, labelsMap map[string]string) (int, error) {
+	pods := &v1.PodList{}
+	labelSelector := labels.SelectorFromSet(labelsMap)
+	listOpts := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabelsSelector{Selector: labelSelector},
+	}
+	if err := r.List(ctx, pods, listOpts...); err != nil {
+		return 0, fmt.Errorf("error listing pods: %v", err)
+	}
+	runningPodsCount := 0
+	for _, pod := range pods.Items {
+		if pod.Status.Phase == v1.PodRunning {
+			allContainersReady := true
+			for _, condition := range pod.Status.Conditions {
+				if condition.Type == v1.PodReady && condition.Status != v1.ConditionTrue {
+					allContainersReady = false
+					break
+				}
+			}
+			if allContainersReady {
+				runningPodsCount++
+			}
+		}
+	}
+	return runningPodsCount, nil
 }
