@@ -23,6 +23,11 @@ jobs:
       - name: build
         run: |
           make test
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
   job1:
     runs-on: ubuntu-20.04
     steps:
@@ -51,6 +56,10 @@ jobs:
       - name: build
         run: |
           sudo make e2e
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job2:
     runs-on: ubuntu-20.04

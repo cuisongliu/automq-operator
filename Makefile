@@ -62,7 +62,7 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./api/... --ginkgo.v -v --ginkgo.trace
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./api/... --ginkgo.v -v --ginkgo.trace -coverprofile=coverage.txt
 
 ##@ Build
 
@@ -170,7 +170,7 @@ info:
 
 .PHONY: e2e
 e2e: fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./e2e/... --ginkgo.v -v --ginkgo.trace
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./e2e/... --ginkgo.v -v --ginkgo.trace -coverprofile=coverage.txt
 
 
 bindata:
