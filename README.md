@@ -86,7 +86,7 @@ sealos run labring/kafka-ui:v0.7.1
     mkdir -p automq-operator && tar -zxvf automq-operator-v0.0.4-sealos.tgz -C automq-operator
     cd automq-operator/deploy && bash install.sh
     ```
-    <!--automq-operator release sealos end-->
+    <!--automq-operator release end-->
 ### Install AutoMQ
 
 ```shell
