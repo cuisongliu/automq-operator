@@ -27,3 +27,4 @@ Dockerfile.cross
 artifacts
 
 config/kubeconfigs
+replace_content.txt

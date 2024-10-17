@@ -34,8 +34,8 @@ func main() {
 	_ = os.MkdirAll("deploy/images/shim", 0755)
 	_ = os.WriteFile("deploy/images/shim/image.txt", []byte(defaults.DefaultImageName), 0755)
 	_ = os.WriteFile("deploy/images/shim/busybox.txt", []byte(defaults.BusyboxImageName), 0755)
-	cmd1 := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\image: %s' deploy/charts/automq-operator/values.yaml", imageName)
-	if err := execCmd("bash", "-c", cmd1); err != nil {
+	cmdUpgradeImageName := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\image: %s' deploy/charts/automq-operator/values.yaml", imageName)
+	if err := execCmd("bash", "-c", cmdUpgradeImageName); err != nil {
 		fmt.Printf("execCmd error %v", err)
 		os.Exit(1)
 	}
@@ -48,11 +48,24 @@ func main() {
 	if shotVersion == "latest" {
 		shotVersion = "0.0.0"
 	}
-	cmd2 := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\version: %s' deploy/charts/automq-operator/Chart.yaml", shotVersion)
-	if err := execCmd("bash", "-c", cmd2); err != nil {
+	cmdUpgradeChartVersion := fmt.Sprintf("sed -i '/#replace_by_makefile/!b;n;c\\version: %s' deploy/charts/automq-operator/Chart.yaml", shotVersion)
+	if err := execCmd("bash", "-c", cmdUpgradeChartVersion); err != nil {
 		fmt.Printf("execCmd error %v", err)
 		os.Exit(1)
 	}
+
+	cmdUpgradeReadme := fmt.Sprintf("scripts/release_tag.sh v%s", shotVersion)
+	if err := execCmd("bash", "-c", cmdUpgradeReadme); err != nil {
+		fmt.Printf("execCmd error %v", err)
+		os.Exit(1)
+	}
+
+	cmdUpgradeReadmeSealos := fmt.Sprintf("scripts/release_tag_sealos.sh v%s", shotVersion)
+	if err := execCmd("bash", "-c", cmdUpgradeReadmeSealos); err != nil {
+		fmt.Printf("execCmd error %v", err)
+		os.Exit(1)
+	}
+
 	fmt.Printf("update image success")
 }
 
