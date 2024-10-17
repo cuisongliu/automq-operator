@@ -1,7 +1,7 @@
 [tagpr]
     vPrefix = true
     releaseBranch = main
-    versionFile = .tagpr,README.md
+    versionFile = .tagpr
     command = go run gen/version/gen.go ghcr.io/cuisongliu/automq-operator:v0.1.0 && make info
     release = false
     changelog = true
