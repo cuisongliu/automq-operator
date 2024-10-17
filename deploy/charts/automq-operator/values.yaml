@@ -5,7 +5,7 @@
 replicaCount: 3
 
 #replace_by_makefile
-image: ghcr.io/cuisongliu/automq-operator:v0.0.4
+image: ghcr.io/cuisongliu/automq-operator:v0.1.0
 
 nameOverride: ""
 fullnameOverride: "automq-operator"
