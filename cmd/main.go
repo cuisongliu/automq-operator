@@ -115,8 +115,8 @@ func main() {
 		}
 	}
 
-	if os.Getenv("OPERATOR_APIS_SVC_NAME") == "" {
-		setupLog.Error(err, "OPERATOR_APIS_SVC_NAME is empty")
+	if os.Getenv("OPERATOR_APIS_IP") == "" {
+		setupLog.Error(err, "OPERATOR_APIS_IP is empty")
 		os.Exit(1)
 	}
 

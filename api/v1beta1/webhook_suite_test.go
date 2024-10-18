@@ -186,6 +186,16 @@ var _ = Describe("Update", func() {
 			Expect(err.Error()).To(ContainSubstring("clusterID"))
 			Expect(err.Error()).To(ContainSubstring("immutable"))
 		})
+		It("Update Controller Replicas", func() {
+			aq := initAutoMQ()
+			err := k8sClient.Create(context.Background(), aq)
+			Expect(err).To(BeNil())
+			aq.Spec.Controller.Replicas = 2
+			err = k8sClient.Update(context.Background(), aq)
+			Expect(true).To(Equal(errors.IsForbidden(err)))
+			Expect(err.Error()).To(ContainSubstring("controller.replicas"))
+			Expect(err.Error()).To(ContainSubstring("immutable"))
+		})
 	})
 
 })
