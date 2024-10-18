@@ -257,7 +257,7 @@ func (r *AutoMQReconciler) syncBrokerDeploy(ctx context.Context, obj *infrav1bet
 		},
 		{
 			Name:  "OPERATOR_APIS_ADDR",
-			Value: fmt.Sprintf("http://%s.%s.svc:%d", os.Getenv("OPERATOR_APIS_SVC_NAME"), os.Getenv("NAMESPACE_NAME"), 9090),
+			Value: fmt.Sprintf("http://%s:%d", os.Getenv("OPERATOR_APIS_IP"), 9090),
 		},
 	}
 	cmds := []string{

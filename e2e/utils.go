@@ -17,89 +17,47 @@ limitations under the License.
 package e2e
 
 import (
-	"fmt"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"os"
-	"os/exec"
-	"strings"
-
-	. "github.com/onsi/ginkgo/v2" //nolint:golint,revive
+	"github.com/cuisongliu/logger"
+	"net"
+	"sort"
 )
 
-var (
-	prometheusOperatorURL = "config/deps/prometheus-operator.yaml"
-)
-
-// InstallPrometheusOperator installs the prometheus Operator to be used to export the enabled metrics.
-func InstallPrometheusOperator() error {
-	cmd := exec.Command("kubectl", "apply", "-f", prometheusOperatorURL, "--server-side=true", "--overwrite=false", "--force-conflicts")
-	out, err := Run(cmd)
-	print(out)
-	return err
+func LocalIP(addrs *[]net.Addr) string {
+	for _, address := range *addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+			return ipnet.IP.String()
+		}
+	}
+	return ""
 }
 
-//docker.io/labring/minio:RELEASE.2024-01-11T07-46-16Z
+func GetLocalIpv4() string {
+	addr, _ := ListLocalHostAddrs()
+	Ipv4 := LocalIP(addr)
+	return Ipv4
+}
 
-// Run executes the provided command within this context
-func Run(cmd *exec.Cmd) ([]byte, error) {
-	dir, _ := GetProjectDir()
-	cmd.Dir = dir
-	fmt.Fprintf(GinkgoWriter, "running dir: %s\n", cmd.Dir)
-
-	// To allow make commands be executed from the project directory which is subdir on SDK repo
-	// TODO:(user) You might not need the following code
-	if err := os.Chdir(cmd.Dir); err != nil {
-		fmt.Fprintf(GinkgoWriter, "chdir dir: %s\n", err)
-	}
-
-	cmd.Env = append(os.Environ(), "GO111MODULE=on")
-	command := strings.Join(cmd.Args, " ")
-	fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
-	output, err := cmd.CombinedOutput()
+func ListLocalHostAddrs() (*[]net.Addr, error) {
+	netInterfaces, err := net.Interfaces()
 	if err != nil {
-		return output, fmt.Errorf("%s failed with error: (%v) %s", command, err, string(output))
+		logger.Warn("net.Interfaces failed, err:", err.Error())
+		return nil, err
 	}
-
-	return output, nil
-}
-
-func GetProjectDir() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return wd, err
+	sort.Slice(netInterfaces, func(i, j int) bool {
+		return netInterfaces[i].Index < netInterfaces[j].Index
+	})
+	var allAddrs []net.Addr
+	for i := 0; i < len(netInterfaces); i++ {
+		if (netInterfaces[i].Flags & net.FlagUp) == 0 {
+			continue
+		}
+		addrs, err := netInterfaces[i].Addrs()
+		if err != nil {
+			logger.Warn("failed to get Addrs, %s", err.Error())
+		}
+		for j := 0; j < len(addrs); j++ {
+			allAddrs = append(allAddrs, addrs[j])
+		}
 	}
-	wd = strings.Replace(wd, "/internal/controller", "", -1)
-	wd = strings.Replace(wd, "/e2e", "", -1)
-	return wd, nil
-}
-
-func CreateKubeconfigFileForRestConfig(restConfig *rest.Config) string {
-	clusters := make(map[string]*clientcmdapi.Cluster)
-	clusters["default-cluster"] = &clientcmdapi.Cluster{
-		Server:                   restConfig.Host,
-		CertificateAuthorityData: restConfig.CAData,
-	}
-	contexts := make(map[string]*clientcmdapi.Context)
-	contexts["default-context"] = &clientcmdapi.Context{
-		Cluster:  "default-cluster",
-		AuthInfo: "default-user",
-	}
-	authinfos := make(map[string]*clientcmdapi.AuthInfo)
-	authinfos["default-user"] = &clientcmdapi.AuthInfo{
-		ClientCertificateData: restConfig.CertData,
-		ClientKeyData:         restConfig.KeyData,
-	}
-	clientConfig := clientcmdapi.Config{
-		Kind:           "Config",
-		APIVersion:     "v1",
-		Clusters:       clusters,
-		Contexts:       contexts,
-		CurrentContext: "default-context",
-		AuthInfos:      authinfos,
-	}
-	kubeConfigFile, _ := os.CreateTemp("", "kubeconfig")
-	_ = clientcmd.WriteToFile(clientConfig, kubeConfigFile.Name())
-	return kubeConfigFile.Name()
+	return &allAddrs, nil
 }
