@@ -100,7 +100,7 @@ func (r *AutoMQReconciler) syncBrokerScale(ctx context.Context, obj *infrav1beta
 
 func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncBrokerReady"
-
+	log := log.FromContext(ctx)
 	// 1. sync pvc
 	// 2. sync deploy
 	// 3. sync svc
@@ -115,6 +115,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 				Reason:             "BrokerPVCReconciling",
 				Message:            fmt.Sprintf("Failed to create pvc for the custom resource (%s): (%s)", obj.Name, err),
 			})
+			log.Error(err, "Failed to create pvc for the custom resource", "name", obj.Name, "role", brokerRole)
 			return true
 		}
 		if err := r.syncBrokerService(ctx, obj, int32(i)); err != nil {
@@ -125,6 +126,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 				Reason:             "BrokerServiceReconciling",
 				Message:            fmt.Sprintf("Failed to create service for the custom resource (%s): (%s)", obj.Name, err),
 			})
+			log.Error(err, "Failed to create service for the custom resource", "name", obj.Name, "role", brokerRole)
 			return true
 		}
 		if err := r.syncBrokerDeploy(ctx, obj, int32(i)); err != nil {
@@ -135,6 +137,7 @@ func (r *AutoMQReconciler) syncBrokers(ctx context.Context, obj *infrav1beta1.Au
 				Reason:             "BrokerSTSReconciling",
 				Message:            fmt.Sprintf("Failed to create deploy for the custom resource (%s): (%s)", obj.Name, err),
 			})
+			log.Error(err, "Failed to create deploy for the custom resource", "name", obj.Name, "role", brokerRole)
 			return true
 		}
 	}

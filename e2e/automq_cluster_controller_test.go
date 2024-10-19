@@ -18,8 +18,14 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
+
+	"github.com/cuisongliu/automq-operator/internal/controller"
+	v2 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1beta1 "github.com/cuisongliu/automq-operator/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
@@ -33,7 +39,7 @@ import (
 var _ = Describe("automq_controller", func() {
 	Context("automq_controller cr tests", func() {
 		ctx := context.Background()
-		namespaceName := "automq-operator"
+		namespaceName := "automq-cr"
 		namespace := &v1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      namespaceName,
@@ -44,22 +50,23 @@ var _ = Describe("automq_controller", func() {
 		automq.Name = "automq-s1"
 		automq.Namespace = namespaceName
 		automq.Spec.ClusterID = "rZdE0DjZSrqy96PXrMUZVw"
-
-		BeforeEach(func() {
+		It("create cr namespace", func() {
 			By("Creating the Namespace to perform the tests")
 			err := k8sClient.Create(ctx, namespace)
 			Expect(err).To(Not(HaveOccurred()))
-			By("Setting the NAMESPACE_NAME ENV VAR which stores the Operand image")
-			err = os.Setenv("NAMESPACE_NAME", namespaceName)
-			Expect(err).To(Not(HaveOccurred()))
 		})
-		It("Update Endpoint", func() {
+		It("create cr", func() {
+			By("get minio ip and port")
+			minioService := &v1.Service{}
+			err := k8sClient.Get(ctx, client.ObjectKey{Namespace: "minio", Name: "minio"}, minioService)
+			Expect(err).To(Not(HaveOccurred()))
+			ip := minioService.Spec.ClusterIP
 			By("creating the custom resource for the automq")
-			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(automq), automq)
+			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(automq), automq)
 			if err != nil && errors.IsNotFound(err) {
 				// Let's mock our custom resource at the same way that we would
 				// apply on the cluster the manifest under config/samples
-				automq.Spec.S3.Endpoint = "http://minio.minio.svc.cluster.local:9000"
+				automq.Spec.S3.Endpoint = fmt.Sprintf("http://%s:9000", ip)
 				automq.Spec.S3.Bucket = "ko3"
 				automq.Spec.S3.AccessKeyID = "admin"
 				automq.Spec.S3.SecretAccessKey = "minio123"
@@ -72,7 +79,120 @@ var _ = Describe("automq_controller", func() {
 				Expect(err).To(Not(HaveOccurred()))
 			}
 		})
-		AfterEach(func() {
+		It("should successfully reconcile the resource", func() {
+			By("Reconciling the created resource")
+			controllerReconciler := &controller.AutoMQReconciler{
+				Client:    k8sClient,
+				Scheme:    k8sClient.Scheme(),
+				Finalizer: "apps.cuisongliu.com/automq.finalizer",
+				MountTZ:   true,
+			}
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: client.ObjectKeyFromObject(automq),
+			})
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("get automq deployment", func() {
+			ctx := context.Background()
+			Eventually(func() error {
+				deployment := &v2.DeploymentList{}
+				labelSelector := labels.Set(map[string]string{"app.kubernetes.io/owner-by": "automq", "app.kubernetes.io/instance": automq.Name}).AsSelector()
+				err := k8sClient.List(ctx, deployment, &client.ListOptions{Namespace: automq.Namespace, LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(deployment.Items) != 4 {
+					return fmt.Errorf("expected 4 deploy, found %d", len(deployment.Items))
+				}
+				for i, deploy := range deployment.Items {
+					if deploy.Status.ReadyReplicas != 1 {
+						return fmt.Errorf("expected deploy %d ready replicas to be 1, got '%d'", i, deploy.Status.ReadyReplicas)
+					}
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+		It("check controller status", func() {
+			ctx := context.Background()
+			Eventually(func() error {
+				podList := &v1.PodList{}
+				labelSelector := labels.Set(map[string]string{"app.kubernetes.io/owner-by": "automq", "app.kubernetes.io/instance": automq.Name, "app.kubernetes.io/role": "controller"}).AsSelector()
+				err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: automq.Namespace, LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(podList.Items) != 1 {
+					return fmt.Errorf("expected 3 pod, found %d", len(podList.Items))
+				}
+				for i, pod := range podList.Items {
+					if pod.Status.Phase != v1.PodRunning {
+						return fmt.Errorf("expected pod %d phase to be 'Running', got '%s'", i, pod.Status.Phase)
+					}
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+
+		It("check broker status", func() {
+			ctx := context.Background()
+			Eventually(func() error {
+				podList := &v1.PodList{}
+				labelSelector := labels.Set(map[string]string{"app.kubernetes.io/owner-by": "automq", "app.kubernetes.io/instance": automq.Name, "app.kubernetes.io/role": "broker"}).AsSelector()
+				err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: automq.Namespace, LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(podList.Items) != 3 {
+					return fmt.Errorf("expected 1 pod, found %d", len(podList.Items))
+				}
+				for i, pod := range podList.Items {
+					if pod.Status.Phase != v1.PodRunning {
+						return fmt.Errorf("expected pod %d phase to be 'Running', got '%s'", i, pod.Status.Phase)
+					}
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+		It("check automq status", func() {
+			ctx := context.Background()
+			Eventually(func() error {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(automq), automq)
+				if err != nil {
+					return err
+				}
+				if automq.Status.Phase != infrav1beta1.AutoMQReady {
+					return fmt.Errorf("expected automq phase to be 'Ready', got '%s'", automq.Status.Phase)
+				}
+				if automq.Status.ControllerReplicas != automq.Spec.Controller.Replicas {
+					return fmt.Errorf("expected automq controller replicas to be %d, got '%d'", automq.Spec.Controller.Replicas, automq.Status.ControllerReplicas)
+				}
+				if automq.Status.BrokerReplicas != automq.Spec.Broker.Replicas {
+					return fmt.Errorf("expected automq broker replicas to be %d, got '%d'", automq.Spec.Broker.Replicas, automq.Status.BrokerReplicas)
+				}
+				showReadyPods := automq.Spec.Controller.Replicas + automq.Spec.Broker.Replicas
+				if automq.Status.ReadyPods != showReadyPods {
+					return fmt.Errorf("expected automq ready pods to be %d, got '%d'", showReadyPods, automq.Status.ReadyPods)
+				}
+				if len(automq.Status.ControllerAddresses) != int(automq.Spec.Controller.Replicas) {
+					return fmt.Errorf("expected automq controller addresses to have %d elements, got '%d'", automq.Spec.Controller.Replicas, len(automq.Status.ControllerAddresses))
+				}
+				if automq.Status.BootstrapInternalAddress == "" {
+					return fmt.Errorf("expected automq bootstrap internal address to be set")
+				}
+				bootstrapService := fmt.Sprintf("%s.%s.svc:%d", "automq-"+"broker-bootstrap", automq.Namespace, 9092)
+				if automq.Status.BootstrapInternalAddress != bootstrapService {
+					return fmt.Errorf("expected automq bootstrap internal address to be '%s', got '%s'", bootstrapService, automq.Status.BootstrapInternalAddress)
+				}
+				for i, address := range automq.Status.ControllerAddresses {
+					controllerService := fmt.Sprintf("%d@%s.%s.svc:%d", i, "automq-controller-"+fmt.Sprintf("%d", i), automq.Namespace, 9093)
+					if address != controllerService {
+						return fmt.Errorf("expected automq controller address %d to be '%s', got '%s'", i, controllerService, address)
+					}
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+		It("clean automq", func() {
 			By("removing the custom resource for the automq")
 			found := &infrav1beta1.AutoMQ{}
 			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(automq), found)

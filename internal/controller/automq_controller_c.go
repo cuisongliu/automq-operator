@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -90,7 +91,7 @@ func (r *AutoMQReconciler) syncControllersScale(ctx context.Context, obj *infrav
 
 func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
 	conditionType := "SyncControllerReady"
-
+	log := log.FromContext(ctx)
 	// 1. sync pvc
 	// 2. sync deploy
 	// 3. sync svc
@@ -105,6 +106,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 				Reason:             "ControllerPVCReconciling",
 				Message:            fmt.Sprintf("Failed to create pvc for the custom resource (%s): (%s)", obj.Name, err),
 			})
+			log.Error(err, "Failed to create pvc for the custom resource (%s)", obj.Name, "role", controllerRole)
 			return true
 		}
 		if err := r.syncControllerDeploy(ctx, obj, int32(i)); err != nil {
@@ -115,6 +117,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 				Reason:             "ControllerSTSReconciling",
 				Message:            fmt.Sprintf("Failed to create deploy for the custom resource (%s): (%s)", obj.Name, err),
 			})
+			log.Error(err, "Failed to create deploy for the custom resource (%s)", obj.Name, "role", controllerRole)
 			return true
 		}
 		if err := r.syncControllerService(ctx, obj, int32(i)); err != nil {
@@ -125,6 +128,7 @@ func (r *AutoMQReconciler) syncControllers(ctx context.Context, obj *infrav1beta
 				Reason:             "ControllerServiceReconciling",
 				Message:            fmt.Sprintf("Failed to create service for the custom resource (%s): (%s)", obj.Name, err),
 			})
+			log.Error(err, "Failed to create service for the custom resource (%s)", obj.Name, "role", controllerRole)
 			return true
 		}
 	}

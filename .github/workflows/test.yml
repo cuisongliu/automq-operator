@@ -84,7 +84,8 @@ jobs:
           sudo sealos run labring/minio:RELEASE.2024-01-11T07-46-16Z labring/kube-prometheus-stack:v0.63.0  
           sudo sealos run labring/kafka-ui:v0.7.1
           sleep 10
-          sudo kubectl get pods -A --show-labels
+          sudo kubectl get pods -A
+          sudo kubectl get svc -A
       - name: build
         run: |
           sudo make e2e

@@ -212,6 +212,8 @@ var _ = BeforeSuite(func() {
 	go func() {
 		controller.APIRegistry(context.Background(), k8sClient)
 	}()
+	err = os.Setenv("NAMESPACE_NAME", "default")
+	Expect(err).To(Not(HaveOccurred()))
 })
 
 var _ = AfterSuite(func() {

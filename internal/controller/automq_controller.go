@@ -172,8 +172,9 @@ func (r *AutoMQReconciler) reconcile(ctx context.Context, obj client.Object) (ct
 		r.syncKafkaBootstrapService,
 	}
 	var ifRunning bool
-	for _, fn := range pipelines {
+	for index, fn := range pipelines {
 		ifRunning = fn(ctx, automq)
+		log.V(1).Info("update reconcile controller automq", "ifRunning", ifRunning, "index", index)
 		if !ifRunning {
 			break
 		}
@@ -220,6 +221,7 @@ func (r *AutoMQReconciler) syncStatus(ctx context.Context, automq *infrav1beta1.
 }
 
 func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.AutoMQ) bool {
+	log := log.FromContext(ctx)
 	conditionType := "SyncS3ServiceReady"
 	sg, err := storage.NewBucket(storage.Config{
 		Type:     "s3",
@@ -229,6 +231,7 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 		Endpoint: obj.Spec.S3.Endpoint,
 	})
 	if err != nil {
+		log.Error(err, "Failed to create S3 Bucket interface for the custom resource", "name", obj.Name, "namespace", obj.Namespace)
 		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionFalse,
@@ -240,6 +243,7 @@ func (r *AutoMQReconciler) s3Service(ctx context.Context, obj *infrav1beta1.Auto
 	}
 	err = sg.MkBucket(ctx, obj.Spec.S3.Bucket)
 	if err != nil && !strings.Contains(err.Error(), "BucketAlready") {
+		log.Error(err, "Failed to create S3 Bucket interface for the custom resource", "name", obj.Name, "namespace", obj.Namespace)
 		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionFalse,
@@ -264,6 +268,7 @@ func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta
 	conditionType := "SyncConfigmapReady"
 	data, err := defaults.Asset("defaults/up.sh")
 	if err != nil {
+		log.Error(err, "Failed to create script configmap for the custom resource", "name", obj.Name, "namespace", obj.Namespace)
 		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionFalse,
@@ -291,6 +296,7 @@ func (r *AutoMQReconciler) scriptConfigmap(ctx context.Context, obj *infrav1beta
 		log.V(1).Info("create or update configmap  by AutoMQ", "OperationResult", change)
 		return nil
 	}); err != nil {
+		log.Error(err, "Failed to create script configmap for the custom resource", "name", obj.Name, "namespace", obj.Namespace)
 		meta.SetStatusCondition(&obj.Status.Conditions, metav1.Condition{
 			Type:               conditionType,
 			Status:             metav1.ConditionFalse,
