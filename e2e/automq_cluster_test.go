@@ -57,14 +57,6 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = Describe("automq_controller", func() {
-	Context("install", func() {
-		It("PrometheusOperator", func() {
-			var err error
-			err = InstallPrometheusOperator()
-			Expect(err).To(Not(HaveOccurred()))
-		})
-
-	})
 	Context("automq_controller tests", func() {
 		ctx := context.Background()
 		namespaceName := "automq-operator"
@@ -83,7 +75,6 @@ var _ = Describe("automq_controller", func() {
 			By("Creating the Namespace to perform the tests")
 			err := k8sClient.Create(ctx, namespace)
 			Expect(err).To(Not(HaveOccurred()))
-
 			By("Setting the NAMESPACE_NAME ENV VAR which stores the Operand image")
 			err = os.Setenv("NAMESPACE_NAME", namespaceName)
 			Expect(err).To(Not(HaveOccurred()))
@@ -94,11 +85,15 @@ var _ = Describe("automq_controller", func() {
 			if err != nil && errors.IsNotFound(err) {
 				// Let's mock our custom resource at the same way that we would
 				// apply on the cluster the manifest under config/samples
-				automq.Spec.S3.Endpoint = "http://localhost:9000"
+				automq.Spec.S3.Endpoint = "http://minio.minio.svc.cluster.local:9000"
 				automq.Spec.S3.Bucket = "ko3"
-				automq.Spec.S3.AccessKeyID = "min"
-				automq.Spec.S3.SecretAccessKey = "test"
+				automq.Spec.S3.AccessKeyID = "admin"
+				automq.Spec.S3.SecretAccessKey = "minio123"
 				automq.Spec.S3.Region = "us-east-1"
+				automq.Spec.S3.EnablePathStyle = true
+				automq.Spec.Controller.Replicas = 1
+				automq.Spec.Broker.Replicas = 3
+				automq.Spec.NodePort = 32009
 				err = k8sClient.Create(ctx, automq)
 				Expect(err).To(Not(HaveOccurred()))
 			}
@@ -156,6 +151,12 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	err = os.Setenv("ENABLE_WEBHOOKS", "false")
+	Expect(err).To(Not(HaveOccurred()))
+
+	err = os.Setenv("OPERATOR_APIS_IP", GetLocalIpv4())
+	Expect(err).To(Not(HaveOccurred()))
 })
 
 var _ = AfterSuite(func() {
