@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.1.0](https://github.com/cuisongliu/automq-operator/compare/v0.0.4...v0.1.0) - 2024-10-19
+- config: Automated Tagpr Update for v0.1.0 by @github-actions in https://github.com/cuisongliu/automq-operator/pull/44
+- feat(main):  add docs for automq operator by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/46
+- feat(main):  add sync images by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/47
+- feat(main):  add envs for jobs by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/48
+- feat(main):  upgrade go version to workflow by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/49
+- feat(main):  add status logic by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/50
+- feat(main):  add bootstrap address by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/51
+- feat(main):  add codecov by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/52
+- config: Automated Tagpr Update for v0.1.0 by @github-actions in https://github.com/cuisongliu/automq-operator/pull/53
+- feat(main):  add update version scripts by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/54
+- feat(main):  fix error for readme by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/55
+- feat(main):  add test webhooks by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/56
+- feat(main):  add apis node by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/57
+- feat(main):  add test for automq by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/58
+
 ## [v0.0.4](https://github.com/cuisongliu/automq-operator/compare/v0.0.3...v0.0.4) - 2024-10-15
 - config: Automated Tagpr Update for v0.0.4 by @github-actions in https://github.com/cuisongliu/automq-operator/pull/15
 - config: Automated Tagpr Update for v0.0.4 by @github-actions in https://github.com/cuisongliu/automq-operator/pull/17

@@ -76,14 +76,14 @@ sealos run labring/kafka-ui:v0.7.1
 1.  Using sealos images install operator
     <!--automq-operator release sealos begin-->
     ```shell
-    sealos run ghcr.io/cuisongliu/automq-operator-sealos:v0.0.4
+    sealos run ghcr.io/cuisongliu/automq-operator-sealos:v0.1.0
     ```
     <!--automq-operator release sealos end-->   
 2.  Using helm chart install operator
     <!--automq-operator release begin-->
     ```shell
-    wget -q https://github.com/cuisongliu/automq-operator/releases/download/v0.0.4/automq-operator-v0.0.4-sealos.tgz
-    mkdir -p automq-operator && tar -zxvf automq-operator-v0.0.4-sealos.tgz -C automq-operator
+    wget -q https://github.com/cuisongliu/automq-operator/releases/download/v0.1.0/automq-operator-v0.1.0-sealos.tgz
+    mkdir -p automq-operator && tar -zxvf automq-operator-v0.1.0-sealos.tgz -C automq-operator
     cd automq-operator/deploy && bash install.sh
     ```
     <!--automq-operator release end-->
