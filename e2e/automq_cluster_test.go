@@ -19,17 +19,18 @@ package e2e
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
+	"github.com/cuisongliu/automq-operator/internal/controller"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	promv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -57,65 +58,111 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = Describe("automq_controller", func() {
-	Context("automq_controller tests", func() {
+	Context("automq_controller apis tests", func() {
 		ctx := context.Background()
-		namespaceName := "automq-operator"
-		namespace := &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      namespaceName,
-				Namespace: namespaceName,
-			},
-		}
-		automq := &infrav1beta1.AutoMQ{}
-		automq.Name = "automq-s1"
-		automq.Namespace = namespaceName
-		automq.Spec.ClusterID = "rZdE0DjZSrqy96PXrMUZVw"
-
-		BeforeEach(func() {
-			By("Creating the Namespace to perform the tests")
-			err := k8sClient.Create(ctx, namespace)
-			Expect(err).To(Not(HaveOccurred()))
-			By("Setting the NAMESPACE_NAME ENV VAR which stores the Operand image")
-			err = os.Setenv("NAMESPACE_NAME", namespaceName)
-			Expect(err).To(Not(HaveOccurred()))
-		})
-		It("Update Endpoint", func() {
-			By("creating the custom resource for the automq")
-			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(automq), automq)
-			if err != nil && errors.IsNotFound(err) {
-				// Let's mock our custom resource at the same way that we would
-				// apply on the cluster the manifest under config/samples
-				automq.Spec.S3.Endpoint = "http://minio.minio.svc.cluster.local:9000"
-				automq.Spec.S3.Bucket = "ko3"
-				automq.Spec.S3.AccessKeyID = "admin"
-				automq.Spec.S3.SecretAccessKey = "minio123"
-				automq.Spec.S3.Region = "us-east-1"
-				automq.Spec.S3.EnablePathStyle = true
-				automq.Spec.Controller.Replicas = 1
-				automq.Spec.Broker.Replicas = 3
-				automq.Spec.NodePort = 32009
-				err = k8sClient.Create(ctx, automq)
-				Expect(err).To(Not(HaveOccurred()))
-			}
-		})
-		AfterEach(func() {
-			By("removing the custom resource for the automq")
-			found := &infrav1beta1.AutoMQ{}
-			err := k8sClient.Get(ctx, client.ObjectKeyFromObject(automq), found)
-			Expect(err).To(Not(HaveOccurred()))
-
+		It("check api", func() {
 			Eventually(func() error {
-				return k8sClient.Delete(context.TODO(), found)
-			}, 2*time.Minute, time.Second).Should(Succeed())
-
-			// TODO(user): Attention if you improve this code by adding other context test you MUST
-			// be aware of the current delete namespace limitations.
-			// More info: https://book.kubebuilder.io/reference/envtest.html#testing-considerations
-			By("Deleting the Namespace to perform the tests")
-			_ = k8sClient.Delete(ctx, namespace)
-
-			By("Removing the Image ENV VAR which stores the Operand image")
-			_ = os.Unsetenv("NAMESPACE_NAME")
+				nodes := &v1.NodeList{}
+				err := k8sClient.List(ctx, nodes)
+				if err != nil {
+					return fmt.Errorf("list node error %s", err.Error())
+				}
+				if len(nodes.Items) == 0 {
+					return fmt.Errorf("expected 1 node, found %d", len(nodes.Items))
+				}
+				nodeName := nodes.Items[0].Name
+				nodeIp := nodes.Items[0].Status.Addresses[0].Address
+				if nodeIp == "" {
+					return fmt.Errorf("node ip not found")
+				}
+				if nodeName == "" {
+					return fmt.Errorf("node name not found")
+				}
+				ip := os.Getenv("OPERATOR_APIS_IP")
+				if ip == "" {
+					return fmt.Errorf("OPERATOR_APIS_IP is empty")
+				}
+				apiAddr := fmt.Sprintf("http://%s:9090/api/v1/nodes/%s", ip, nodeName)
+				out := RestHttpApi(ctx, apiAddr, "GET", nil, 0)
+				if out.Code != 200 {
+					return fmt.Errorf("api response code %d", out.Code)
+				}
+				if string(out.Data) != nodeIp {
+					return fmt.Errorf("api response %s", string(out.Data))
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+	})
+	Context("automq_controller component tests", func() {
+		ctx := context.Background()
+		It("check minio status", func() {
+			Eventually(func() error {
+				podList := &v1.PodList{}
+				labelSelector := labels.Set(map[string]string{"release": "minio"}).AsSelector()
+				err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: "minio", LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(podList.Items) == 0 {
+					return fmt.Errorf("expected 1 pod, found %d", len(podList.Items))
+				}
+				if podList.Items[0].Status.Phase != v1.PodRunning {
+					return fmt.Errorf("expected pod phase to be 'Running', got '%s'", podList.Items[0].Status.Phase)
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+		It("check cert-manager status", func() {
+			Eventually(func() error {
+				podList := &v1.PodList{}
+				labelSelector := labels.Set(map[string]string{"app.kubernetes.io/instance": "cert-manager"}).AsSelector()
+				err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: "cert-manager", LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(podList.Items) == 0 {
+					return fmt.Errorf("expected 1 pod, found %d", len(podList.Items))
+				}
+				if podList.Items[0].Status.Phase != v1.PodRunning {
+					return fmt.Errorf("expected pod phase to be 'Running', got '%s'", podList.Items[0].Status.Phase)
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+		It("check prometheus status", func() {
+			Eventually(func() error {
+				podList := &v1.PodList{}
+				labelSelector := labels.Set(map[string]string{"release": "prometheus"}).AsSelector()
+				err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: "monitoring", LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(podList.Items) == 0 {
+					return fmt.Errorf("expected 1 pod, found %d", len(podList.Items))
+				}
+				if podList.Items[0].Status.Phase != v1.PodRunning {
+					return fmt.Errorf("expected pod phase to be 'Running', got '%s'", podList.Items[0].Status.Phase)
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
+		It("check kafka-ui status", func() {
+			Eventually(func() error {
+				podList := &v1.PodList{}
+				labelSelector := labels.Set(map[string]string{"release": "minio"}).AsSelector()
+				err := k8sClient.List(ctx, podList, &client.ListOptions{Namespace: "minio", LabelSelector: labelSelector})
+				if err != nil {
+					return err
+				}
+				if len(podList.Items) == 0 {
+					return fmt.Errorf("expected 1 pod, found %d", len(podList.Items))
+				}
+				if podList.Items[0].Status.Phase != v1.PodRunning {
+					return fmt.Errorf("expected pod phase to be 'Running', got '%s'", podList.Items[0].Status.Phase)
+				}
+				return nil
+			}, "60s", "1s").Should(Succeed())
 		})
 	})
 
@@ -145,6 +192,10 @@ var _ = BeforeSuite(func() {
 
 	err = infrav1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = clientgoscheme.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+	err = promv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
@@ -157,6 +208,10 @@ var _ = BeforeSuite(func() {
 
 	err = os.Setenv("OPERATOR_APIS_IP", GetLocalIpv4())
 	Expect(err).To(Not(HaveOccurred()))
+
+	go func() {
+		controller.APIRegistry(context.Background(), k8sClient)
+	}()
 })
 
 var _ = AfterSuite(func() {

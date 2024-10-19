@@ -28,7 +28,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-  job2:
+  job1:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
@@ -48,9 +48,16 @@ jobs:
           cd deploy
           sudo sealos build -t ghcr.io/${{ github.repository_owner }}/automq-operator-sealos:latest .
 
-  job1:
+  job2:
     runs-on: ubuntu-20.04
     steps:
+      - name: Before freeing up disk space
+        run: |
+          echo "Before freeing up disk space"
+          echo "=============================================================================="
+          df -hT
+          echo "=============================================================================="
+
       - name: Checkout
         uses: actions/checkout@master
 
@@ -62,7 +69,7 @@ jobs:
       - name: Verify sealos
         run: |
           curl -sfL https://raw.githubusercontent.com/labring/sealos/v5.0.0/scripts/install.sh | sh -s v5.0.0  labring/sealos
-      - name: prune os
+      - name: install k8s and apps
         run: |
           sudo systemctl unmask containerd
           sudo systemctl unmask docker
@@ -74,7 +81,10 @@ jobs:
           sudo rm -rf /run/containerd/containerd.sock
           sudo sealos run labring/kubernetes:v1.27.7 
           sudo sealos run labring/helm:v3.9.4 labring/calico:v3.26.5  labring/openebs:v3.9.0 labring/cert-manager:v1.14.6
-          sudo sealos run labring/minio:RELEASE.2024-01-11T07-46-16Z labring/kube-prometheus-stack:v0.63.0  labring/kafka-ui:v0.7.1
+          sudo sealos run labring/minio:RELEASE.2024-01-11T07-46-16Z labring/kube-prometheus-stack:v0.63.0  
+          sudo sealos run labring/kafka-ui:v0.7.1
+          sleep 10
+          sudo kubectl get pods -A --show-labels
       - name: build
         run: |
           sudo make e2e

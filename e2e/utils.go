@@ -17,9 +17,10 @@ limitations under the License.
 package e2e
 
 import (
-	"github.com/cuisongliu/logger"
 	"net"
 	"sort"
+
+	"github.com/cuisongliu/logger"
 )
 
 func LocalIP(addrs *[]net.Addr) string {
