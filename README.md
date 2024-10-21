@@ -105,6 +105,8 @@ spec:
     bucket: automq
     enablePathStyle: true
   nodePort: 32009
+  broker:
+    replicas: 3
   controller:
     replicas: 3
     jvmOptions:
