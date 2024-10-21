@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.2.0](https://github.com/cuisongliu/automq-operator/compare/v0.1.0...v0.2.0) - 2024-10-21
+- config: Automated Tagpr Update for v0.2.0 by @github-actions in https://github.com/cuisongliu/automq-operator/pull/59
+- feat(main): fix release ci by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/61
+- feat(main): fix readme by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/62
+
 ## [v0.1.0](https://github.com/cuisongliu/automq-operator/compare/v0.0.4...v0.1.0) - 2024-10-19
 - config: Automated Tagpr Update for v0.1.0 by @github-actions in https://github.com/cuisongliu/automq-operator/pull/44
 - feat(main):  add docs for automq operator by @cuisongliu in https://github.com/cuisongliu/automq-operator/pull/46
