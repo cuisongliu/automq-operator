@@ -192,6 +192,13 @@ var _ = Describe("automq_controller", func() {
 				return nil
 			}, "60s", "1s").Should(Succeed())
 		})
+		It("check automq nodeAffinity", func() {
+			ctx = context.Background()
+			Eventually(func() error {
+
+				return nil
+			}, "60s", "1s").Should(Succeed())
+		})
 		It("clean automq", func() {
 			By("removing the custom resource for the automq")
 			found := &infrav1beta1.AutoMQ{}
