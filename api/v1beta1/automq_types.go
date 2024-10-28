@@ -54,19 +54,64 @@ type NodeAffinity struct {
 	Type string `json:"type,omitempty"`
 	// NodeSelector is the node selector for the node affinity.
 	// +kubebuilder:minItems=1
-	NodeSelector []NodeSelector `json:"nodeSelector,omitempty"`
+	NodeSelector []Selector `json:"nodeSelector,omitempty"`
 	// Weight is the weight of the node affinity. When the type is "soft", the weight is used to select the node. Default is 40.
 	// +kubebuilder:default=40
 	Weight int32 `json:"weight,omitempty"`
 }
 
-type NodeSelector struct {
+func (in *NodeAffinity) toK8sNodeAffinity() *v1.NodeAffinity {
+	nodeAffinity := &v1.NodeAffinity{}
+	var preferredSchedulingTerms []v1.PreferredSchedulingTerm
+	var nodeSelectorRequirements []v1.NodeSelectorRequirement
+	var nodeSelectorTerms []v1.NodeSelectorTerm
+
+	for _, selector := range in.NodeSelector {
+		switch in.Type {
+		case "soft":
+			nodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(preferredSchedulingTerms, v1.PreferredSchedulingTerm{
+				Weight: in.Weight,
+				Preference: v1.NodeSelectorTerm{
+					MatchExpressions: append(nodeSelectorRequirements, newSelector(selector.Key, selector.Values).toNodeSelectorRequirement()),
+				},
+			})
+		case "hard":
+			nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &v1.NodeSelector{
+				NodeSelectorTerms: append(nodeSelectorTerms, v1.NodeSelectorTerm{
+					MatchExpressions: append(nodeSelectorRequirements, newSelector(selector.Key, selector.Values).toNodeSelectorRequirement()),
+				}),
+			}
+		}
+	}
+	return nodeAffinity
+}
+
+type Selector struct {
 	// Key is the key of the node selector
 	// +kubebuilder:validation:Required
 	Key string `json:"key,omitempty"`
 	// Values is the value of the node selector
 	// +kubebuilder:minItems=1
 	Values []string `json:"values,omitempty"`
+}
+
+func newSelector(key string, values []string) *Selector {
+	return &Selector{Key: key, Values: values}
+}
+
+func (s *Selector) toLabelSelectorRequirement() metav1.LabelSelectorRequirement {
+	return metav1.LabelSelectorRequirement{
+		Key:      s.Key,
+		Operator: metav1.LabelSelectorOpIn,
+		Values:   s.Values,
+	}
+}
+func (s *Selector) toNodeSelectorRequirement() v1.NodeSelectorRequirement {
+	return v1.NodeSelectorRequirement{
+		Key:      s.Key,
+		Operator: v1.NodeSelectorOpIn,
+		Values:   s.Values,
+	}
 }
 
 type PodAffinity struct {
@@ -77,6 +122,41 @@ type PodAffinity struct {
 	// Weight is the weight of the pod affinity. When the type is "soft", the weight is used to select the pods. Default is 40.
 	// +kubebuilder:default=40
 	Weight int32 `json:"weight,omitempty"`
+	// LabelSelector is the  label selector for the pod affinity,
+	// +kubebuilder:minItems=1
+	LabelSelector []Selector `json:"labelSelector,omitempty"`
+	// TopologyKey is the topology key for the pod affinity
+	// +kubebuilder:default=kubernetes.io/hostname
+	TopologyKey string `json:"topologyKey"`
+}
+
+func (in *PodAffinity) toK8sPodAffinity() *v1.PodAffinity {
+	podAffinity := &v1.PodAffinity{}
+	var weightedPodAffinityTerms []v1.WeightedPodAffinityTerm
+	var podAffinityTerms []v1.PodAffinityTerm
+	var labelSelectorRequirements []metav1.LabelSelectorRequirement
+	for _, selector := range in.LabelSelector {
+		switch in.Type {
+		case "soft":
+			podAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(weightedPodAffinityTerms, v1.WeightedPodAffinityTerm{
+				Weight: in.Weight,
+				PodAffinityTerm: v1.PodAffinityTerm{
+					LabelSelector: &metav1.LabelSelector{
+						MatchExpressions: append(labelSelectorRequirements, newSelector(selector.Key, selector.Values).toLabelSelectorRequirement()),
+					},
+					TopologyKey: in.TopologyKey,
+				},
+			})
+		case "hard":
+			podAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(podAffinityTerms, v1.PodAffinityTerm{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: append(labelSelectorRequirements, newSelector(selector.Key, selector.Values).toLabelSelectorRequirement()),
+				},
+				TopologyKey: in.TopologyKey,
+			})
+		}
+	}
+	return podAffinity
 }
 
 type PodAntiAffinity struct {
@@ -87,6 +167,42 @@ type PodAntiAffinity struct {
 	// Weight is the weight of the pod anti affinity. When the type is "soft", the weight is used to select the pods. Default is 40.
 	// +kubebuilder:default=40
 	Weight int32 `json:"weight,omitempty"`
+	// LabelSelector is the  label selector for the pod anti affinity,
+	// +kubebuilder:minItems=1
+	LabelSelector []Selector `json:"labelSelector,omitempty"`
+	// TopologyKey is the topology key for the pod anti affinity
+	// +kubebuilder:default=kubernetes.io/hostname
+	TopologyKey string `json:"topologyKey"`
+}
+
+func (in *PodAntiAffinity) toK8sPodAntiAffinity() *v1.PodAntiAffinity {
+	podAntiAffinity := &v1.PodAntiAffinity{}
+	var weightedPodAffinityTerms []v1.WeightedPodAffinityTerm
+	var labelSelectorRequirements []metav1.LabelSelectorRequirement
+	var podAffinityTerms []v1.PodAffinityTerm
+	for _, selector := range in.LabelSelector {
+		switch in.Type {
+		case "soft":
+			podAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(weightedPodAffinityTerms, v1.WeightedPodAffinityTerm{
+				Weight: in.Weight,
+				PodAffinityTerm: v1.PodAffinityTerm{
+					LabelSelector: &metav1.LabelSelector{
+						MatchExpressions: append(labelSelectorRequirements, newSelector(selector.Key, selector.Values).toLabelSelectorRequirement()),
+					},
+					TopologyKey: in.TopologyKey,
+				},
+			})
+		case "hard":
+			podAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = append(podAffinityTerms, v1.PodAffinityTerm{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: append(labelSelectorRequirements, newSelector(selector.Key, selector.Values).toLabelSelectorRequirement()),
+				},
+				TopologyKey: in.TopologyKey,
+			})
+		}
+	}
+
+	return podAntiAffinity
 }
 
 type AffinitySpec struct {
@@ -100,7 +216,19 @@ type AffinitySpec struct {
 
 func (in *AffinitySpec) ToK8sAffinity() *v1.Affinity {
 	affinity := &v1.Affinity{}
-	//TODO implement the conversion
+
+	if in.NodeAffinity != nil {
+		affinity.NodeAffinity = in.NodeAffinity.toK8sNodeAffinity()
+	}
+
+	if in.PodAffinity != nil {
+		affinity.PodAffinity = in.PodAffinity.toK8sPodAffinity()
+	}
+
+	if in.PodAntiAffinity != nil {
+		affinity.PodAntiAffinity = in.PodAntiAffinity.toK8sPodAntiAffinity()
+	}
+
 	return affinity
 }
 
